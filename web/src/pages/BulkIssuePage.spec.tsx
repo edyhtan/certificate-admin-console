@@ -267,4 +267,34 @@ describe('BulkIssuePage', () => {
     expect(router.state.location.pathname).toBe('/audit')
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
   })
+
+  it('links to the audit log filtered to the course after issuing (M2.T9)', async () => {
+    const api = fakeApi()
+    const user = userEvent.setup()
+    const { router } = renderRoute('/bulk-issue?courseId=1')
+    await user.click(await screen.findByRole('button', { name: 'Issue 3 certificates' }))
+    await waitFor(() => expect(api.state.streams).toHaveLength(1))
+    api.state.streams[0].send({ type: 'start', total: 1 }, results[0], { type: 'done', issued: 1, skipped: 0, failed: 0 })
+    api.state.streams[0].close()
+
+    await user.click(await screen.findByRole('link', { name: 'View audit log' }))
+    expect(router.state.location.pathname).toBe('/audit')
+    expect(router.state.location.search).toBe('?courseId=1&action=certificate.issued')
+  })
+
+  it('has no audit log link when nothing was issued', async () => {
+    const api = fakeApi()
+    const user = userEvent.setup()
+    renderRoute('/bulk-issue?courseId=1')
+    await user.click(await screen.findByRole('button', { name: 'Issue 3 certificates' }))
+    await waitFor(() => expect(api.state.streams).toHaveLength(1))
+    api.state.streams[0].send(
+      { type: 'start', total: 1 },
+      { type: 'result', enrollmentId: 7, participantName: 'A', outcome: 'skipped', reason: 'already_issued' },
+      { type: 'done', issued: 0, skipped: 1, failed: 0 },
+    )
+    api.state.streams[0].close()
+    await screen.findByText(/^Done:/)
+    expect(screen.queryByRole('link', { name: 'View audit log' })).not.toBeInTheDocument()
+  })
 })

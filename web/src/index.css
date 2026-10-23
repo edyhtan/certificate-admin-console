@@ -474,3 +474,36 @@ button.primary {
 .export .form-error {
   margin: 0;
 }
+
+/* Audit */
+.audit-section {
+  margin-top: 2rem;
+}
+
+.audit-section h2 {
+  font-size: 1.15rem;
+  margin: 0 0 0.75rem;
+}
+
+.audit-trail {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.audit-trail li {
+  margin-bottom: 0.4rem;
+}
+
+.audit-detail {
+  color: var(--text-muted);
+}
+
+.badge-action-issued {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.badge-action-revoked {
+  color: var(--danger);
+  background: var(--danger-bg);
+}

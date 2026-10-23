@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { IssuanceDoneEvent, IssuanceEvent, IssuanceResultEvent } from '@cert/shared'
 import { issueCertificates, issuanceKeys } from './api'
 import { certificateKeys } from '../certificates/api'
+import { auditKeys } from '../audit/api'
 
 export type RunStatus = 'idle' | 'running' | 'done' | 'interrupted'
 
@@ -99,7 +100,7 @@ export function useIssuanceRun() {
         running.current = false
         void queryClient.invalidateQueries({ queryKey: certificateKeys.all() })
         void queryClient.invalidateQueries({ queryKey: issuanceKeys.all() })
-        void queryClient.invalidateQueries({ queryKey: ['audit'] })
+        void queryClient.invalidateQueries({ queryKey: auditKeys.all() })
       }
     },
     [queryClient],

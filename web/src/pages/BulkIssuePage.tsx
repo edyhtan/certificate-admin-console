@@ -5,6 +5,7 @@ import { ApiError, errorMessage } from '../api/errors'
 import { DataTable, type Column } from '../components/DataTable'
 import { ErrorState, LoadingState } from '../components/states'
 import { useCourses } from '../features/courses/api'
+import { auditLogLink } from '../features/audit/api'
 import { useIssuancePreview } from '../features/issuances/api'
 import { countOutcomes, StreamEndedEarlyError, useIssuanceRun } from '../features/issuances/useIssuanceRun'
 
@@ -172,6 +173,7 @@ export function BulkIssuePage() {
               <button type="button" onClick={() => void start(courseId!)}>
                 Run again
               </button>
+              {counts.issued > 0 && <Link to={auditLogLink(courseId!)}>View audit log</Link>}
               {run.status === 'done' && run.summary && run.summary.failed > 0 && (
                 <span className="hint">Failed learners are tried again on the next run.</span>
               )}
