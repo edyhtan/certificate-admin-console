@@ -78,8 +78,8 @@ Frontend tasks for the Certificate Admin Console. Backend, infrastructure, test 
 
 | Task  | Area  | Title                                              | Depends on    | Status | PR  |
 |-------|-------|----------------------------------------------------|---------------|--------|-----|
-| M3.T5 | FE    | Tenant switcher and tenant-aware API client        | M3.T2         | in progress |     |
-| M3.T6 | FE    | Tenant timezone display everywhere                 | M3.T5, M3.T3  | in progress |     |
+| M3.T5 | FE    | Tenant switcher and tenant-aware API client        | M3.T2         | in review  | #11 |
+| M3.T6 | FE    | Tenant timezone display everywhere                 | M3.T5, M3.T3  | in review  | #11 |
 
 **M3.T5 — Tenant switcher and tenant-aware API client**
 - Load `GET /api/tenants`; switcher in the header; selection saved in `localStorage` (wrapped in try/catch); default to the first tenant.
