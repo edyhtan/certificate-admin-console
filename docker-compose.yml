@@ -24,5 +24,42 @@ services:
       retries: 60
       start_period: 10s
 
+  # The full app. Started only with the `app` profile, so `docker compose up` (used by
+  # `npm run dev` and the e2e tests) still starts MySQL alone:
+  #   docker compose --profile app up --build
+  api:
+    profiles: [app]
+    build:
+      context: .
+      target: api
+    environment:
+      # Each tenant's database name (cert_syd, cert_per, cert_adl) is appended to this.
+      DATABASE_URL_BASE: mysql://root:root@mysql:3306
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      # db:setup creates, migrates and seeds the tenant databases before the API listens.
+      start_period: 120s
+
+  web:
+    profiles: [app]
+    build:
+      context: .
+      target: web
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
   mysql_data:

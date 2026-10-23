@@ -22,7 +22,7 @@ Task IDs are unique across both files (`M1.T8` is backend, `M1.T12` is frontend)
 | M1 — Foundations | Runnable server and database with all domain data and relations; auxiliary, list (paging only), detail and revoke endpoints. Web framework that talks to it | M1.T1–T9 | M1.T10–T13 |
 | M2 — Full features | Search/filter/sort, bulk issue, CSV export, audit events. UI for each, including audit logs | M2.T1–T5 | M2.T6–T9 |
 | M3 — Multi-tenancy | One database per tenant selected by `tenant_id`; tenant switcher and tenant timezones in the UI | M3.T1–T4 | M3.T5–T6 |
-| M4 — Final polish | Fresh-clone self-check, UX and API polish, README, optional CI | M4.T1, T3–T5 | M4.T2 |
+| M4 — Final polish | Fresh-clone self-check, UX and API polish, README, Docker full stack, optional CI | M4.T1, T3–T5, T7 | M4.T2 |
 
 ## Parallel lanes and cross-file dependencies
 

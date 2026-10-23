@@ -37,3 +37,32 @@ export function mockFetch(handler: MockHandler) {
   })
   return { requests, spy }
 }
+
+/**
+ * A streamed `application/x-ndjson` response the test feeds by hand: `send` writes events
+ * (optionally split mid-line), `close` ends the stream, `fail` drops the connection.
+ */
+export function ndjsonStream() {
+  const encoder = new TextEncoder()
+  let controller!: ReadableStreamDefaultController<Uint8Array>
+  const body = new ReadableStream<Uint8Array>({
+    start(c) {
+      controller = c
+    },
+  })
+  return {
+    response: new Response(body, { status: 200, headers: { 'Content-Type': 'application/x-ndjson' } }),
+    send(...events: unknown[]) {
+      controller.enqueue(encoder.encode(events.map((e) => JSON.stringify(e) + '\n').join('')))
+    },
+    sendRaw(text: string) {
+      controller.enqueue(encoder.encode(text))
+    },
+    close() {
+      controller.close()
+    },
+    fail() {
+      controller.error(new TypeError('network error'))
+    },
+  }
+}

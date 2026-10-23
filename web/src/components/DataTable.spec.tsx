@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { DataTable, type Column } from './DataTable'
 
 interface Row {
@@ -47,5 +48,38 @@ describe('DataTable', () => {
     expect(screen.getByRole('table')).not.toHaveAttribute('aria-busy')
     rerender(<DataTable caption="People" columns={columns} rows={rows} rowKey={(r) => r.id} busy />)
     expect(screen.getByRole('table')).toHaveAttribute('aria-busy', 'true')
+  })
+
+  describe('sorting', () => {
+    const sortable: Column<Row>[] = [
+      { ...columns[0], sortKey: 'name' },
+      { ...columns[1], sortKey: 'count' },
+      { key: 'plain', header: 'Plain', cell: () => 'x' },
+    ]
+
+    it('marks the active column and direction, and leaves unsortable columns plain', () => {
+      render(
+        <DataTable caption="People" columns={sortable} rows={rows} rowKey={(r) => r.id} sort={{ key: 'count', order: 'desc', onSort: () => {} }} />,
+      )
+      expect(screen.getByRole('columnheader', { name: /Count/ })).toHaveAttribute('aria-sort', 'descending')
+      expect(screen.getByRole('columnheader', { name: /Name/ })).toHaveAttribute('aria-sort', 'none')
+      expect(screen.getByRole('columnheader', { name: 'Plain' })).not.toHaveAttribute('aria-sort')
+      expect(within(screen.getByRole('columnheader', { name: 'Plain' })).queryByRole('button')).not.toBeInTheDocument()
+    })
+
+    it('reports the clicked column', async () => {
+      const onSort = vi.fn()
+      render(
+        <DataTable caption="People" columns={sortable} rows={rows} rowKey={(r) => r.id} sort={{ key: 'count', order: 'asc', onSort }} />,
+      )
+      expect(screen.getByRole('columnheader', { name: /Count/ })).toHaveAttribute('aria-sort', 'ascending')
+      await userEvent.click(screen.getByRole('button', { name: /Name/ }))
+      expect(onSort).toHaveBeenCalledExactlyOnceWith('name')
+    })
+
+    it('renders plain headers without a sort prop', () => {
+      render(<DataTable caption="People" columns={sortable} rows={rows} rowKey={(r) => r.id} />)
+      expect(screen.queryAllByRole('button')).toHaveLength(0)
+    })
   })
 })
