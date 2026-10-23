@@ -2,7 +2,7 @@
 
 Frontend tasks for the Certificate Admin Console. Backend, infrastructure, test and docs tasks are in `docs/backend_task.md`; the milestone overview and cross-file order are in `docs/milestones.md`. Rules for branches, order and PRs are in `AGENTS.md`; the design is in `docs/spec.md` (§ references point there).
 
-- "Depends on" can name tasks in either task file, within the same milestone. Every task also depends on the previous milestone being merged into `main`.
+- "Depends on" can name tasks in either task file, within the same milestone.
 - An FE task that depends on a BE task can start early against the M0 contract (`shared`, `docs/api.md`), but merges only after that BE task is merged.
 - Update `Status` and `PR` here as part of your own task PR.
 
@@ -12,10 +12,10 @@ Frontend tasks for the Certificate Admin Console. Backend, infrastructure, test 
 
 | Task   | Area  | Title                                              | Depends on            | Status | PR  |
 |--------|-------|----------------------------------------------------|-----------------------|--------|-----|
-| M1.T10 | FE    | Web app skeleton: Vite, router, query client, proxy | —                    | todo   |     |
-| M1.T11 | FE    | API client, date formatting and shared UI states   | M1.T10                | todo   |     |
-| M1.T12 | FE    | Certificate list page (paging only)                | M1.T11, M1.T8         | todo   |     |
-| M1.T13 | FE    | Certificate detail page and revoke dialog          | M1.T11, M1.T9         | todo   |     |
+| M1.T10 | FE    | Web app skeleton: Vite, router, query client, proxy | —                    | in review  | #3  |
+| M1.T11 | FE    | API client, date formatting and shared UI states   | M1.T10                | in review  | #3  |
+| M1.T12 | FE    | Certificate list page (paging only)                | M1.T11, M1.T8         | in review  | #3  |
+| M1.T13 | FE    | Certificate detail page and revoke dialog          | M1.T11, M1.T9         | in review  | #3  |
 
 **M1.T10 — Web app skeleton**
 - Vite + React + TS in `web` (scaffolded in M0.T1); React Router routes `/certificates`, `/certificates/:id`, `/bulk-issue` (placeholder), `/audit` (placeholder); `/` redirects to `/certificates`.

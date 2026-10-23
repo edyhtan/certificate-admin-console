@@ -2,7 +2,7 @@
 
 Backend, infrastructure, test and docs tasks for the Certificate Admin Console. Frontend tasks are in `docs/frontend_task.md`; the milestone overview and cross-file order are in `docs/milestones.md`. Rules for branches, order and PRs are in `AGENTS.md`; the design is in `docs/spec.md` (§ references point there).
 
-- "Depends on" can name tasks in either task file, within the same milestone. Every task also depends on the previous milestone being merged into `main`.
+- "Depends on" can name tasks in either task file, within the same milestone.
 - Update `Status` and `PR` here as part of your own task PR.
 
 ---

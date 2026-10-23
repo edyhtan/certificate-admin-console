@@ -1,10 +1,12 @@
+import { TENANT_HEADER } from '@cert/shared';
 import { Controller, Get, Injectable, type INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { inject } from 'vitest';
 import { AppConfig } from '../src/config/app-config.js';
 import { AppContext } from '../src/core/context/app-context.js';
+import { SYDNEY_SEED } from '../src/seed/manifest.js';
 import { testAppContext } from './support/app-context.js';
-import { TEST_ADMIN } from './support/db.js';
+import { resetToSydneySeed, TEST_ADMIN, testDb } from './support/db.js';
 import { createTestApp } from './support/test-app.js';
 
 /** Shaped like a core service: injects AppContext and takes no context argument. */
@@ -64,13 +66,69 @@ describe('AppContext single-tenant binding (e2e)', () => {
       });
     });
 
-    it('reports the database as up in the health check', async () => {
+    it('reports the database and the admin row as up in the health check', async () => {
       const res = await request(app.getHttpServer()).get('/api/health');
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
         status: 'ok',
-        checks: { database: { status: 'up', durationMs: expect.any(Number) } },
+        checks: {
+          database: { status: 'up', durationMs: expect.any(Number) },
+          admin: { status: 'up', durationMs: expect.any(Number) },
+        },
       });
+    });
+  });
+
+  describe('real binding, started before the admin row exists', () => {
+    const db = testDb();
+    let app: INestApplication;
+    // Renaming the row hides it from the `admin` lookup without breaking foreign keys.
+    const setAdminUsername = (username: string) =>
+      db.admin.update({ where: { id: TEST_ADMIN.id }, data: { username } });
+    const health = () => request(app.getHttpServer()).get('/api/health');
+    const revoke = () =>
+      request(app.getHttpServer())
+        .post(`/api/certificates/${SYDNEY_SEED.certificates.newYear.id}/revoke`)
+        .set(TENANT_HEADER, 'SYD')
+        .send({});
+
+    beforeEach(async () => {
+      await resetToSydneySeed();
+      await setAdminUsername('not-admin-yet');
+      app = await createTestApp();
+    });
+
+    afterEach(async () => {
+      await app.close();
+      await setAdminUsername(TEST_ADMIN.username);
+    });
+
+    it('answers 503 with the admin check down, then 200 once the row exists, without a restart', async () => {
+      let res = await health();
+      expect(res.status).toBe(503);
+      expect(res.body).toEqual({
+        status: 'error',
+        checks: {
+          database: { status: 'up', durationMs: expect.any(Number) },
+          admin: { status: 'down', durationMs: expect.any(Number) },
+        },
+      });
+
+      await setAdminUsername(TEST_ADMIN.username);
+      res = await health();
+      expect(res.status).toBe(200);
+      expect(res.body.checks.admin.status).toBe('up');
+    });
+
+    it('refuses writes without an actor, then writes once the row exists, without a restart', async () => {
+      let res = await revoke();
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('internal_error');
+
+      await setAdminUsername(TEST_ADMIN.username);
+      res = await revoke();
+      expect(res.status).toBe(200);
+      expect(res.body.revokedBy).toEqual({ id: TEST_ADMIN.id, name: TEST_ADMIN.name });
     });
   });
 
@@ -123,12 +181,15 @@ describe('AppContext single-tenant binding (e2e)', () => {
       await app.close();
     });
 
-    it('still starts, and the health check answers 503 with the database down', async () => {
+    it('still starts, and the health check answers 503 with the database and admin row down', async () => {
       const res = await request(app.getHttpServer()).get('/api/health');
       expect(res.status).toBe(503);
       expect(res.body).toEqual({
         status: 'error',
-        checks: { database: { status: 'down', durationMs: expect.any(Number) } },
+        checks: {
+          database: { status: 'down', durationMs: expect.any(Number) },
+          admin: { status: 'down', durationMs: expect.any(Number) },
+        },
       });
       expect(JSON.stringify(res.body)).not.toContain('127.0.0.1');
     });
