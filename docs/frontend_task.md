@@ -3,7 +3,7 @@
 Frontend tasks for the Certificate Admin Console. Backend, infrastructure, test and docs tasks are in `docs/backend_task.md`; the milestone overview and cross-file order are in `docs/milestones.md`. Rules for branches, order and PRs are in `AGENTS.md`; the design is in `docs/spec.md` (§ references point there).
 
 - "Depends on" can name tasks in either task file, within the same milestone. Every task also depends on the previous milestone being merged into `main`.
-- An FE task that depends on a BE task can start early against the M0 contract (`packages/shared`, `docs/api.md`), but merges only after that BE task is merged.
+- An FE task that depends on a BE task can start early against the M0 contract (`shared`, `docs/api.md`), but merges only after that BE task is merged.
 - Update `Status` and `PR` here as part of your own task PR.
 
 ---
@@ -18,13 +18,13 @@ Frontend tasks for the Certificate Admin Console. Backend, infrastructure, test 
 | M1.T13 | FE    | Certificate detail page and revoke dialog          | M1.T11, M1.T9         | todo   |     |
 
 **M1.T10 — Web app skeleton**
-- Vite + React + TS in `apps/web`; React Router routes `/certificates`, `/certificates/:id`, `/bulk-issue` (placeholder), `/audit` (placeholder); `/` redirects to `/certificates`.
+- Vite + React + TS in `web` (scaffolded in M0.T1); React Router routes `/certificates`, `/certificates/:id`, `/bulk-issue` (placeholder), `/audit` (placeholder); `/` redirects to `/certificates`.
 - TanStack Query provider; Vite dev proxy `/api` → API port; layout with header and nav.
 - Vitest + Testing Library set up with one sample test.
 - Done when: `npm run dev` serves the shell and navigation works.
 
 **M1.T11 — API client, date formatting and shared UI states**
-- Typed `apiFetch` using the shared contract types; parses the error shape; sends `tenant_id` (fixed value until M3).
+- Typed `apiFetch` using the shared contract types; parses the error shape; sends `tenant_id` (fixed `SYD` until M3, D48).
 - `formatInTimeZone(instant, timeZone)` helpers using `Intl.DateTimeFormat`, with tests for Perth and Sydney.
 - Components: `LoadingState`, `EmptyState`, `ErrorState` (with retry), `DataTable`, `Pagination`, `StatusBadge`.
 - Done when: components have stories or tests; the helper tests pass.
