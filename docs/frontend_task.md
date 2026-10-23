@@ -16,6 +16,7 @@ Frontend tasks for the Certificate Admin Console. Backend, infrastructure, test 
 | M1.T11 | FE    | API client, date formatting and shared UI states   | M1.T10                | in review  | #3  |
 | M1.T12 | FE    | Certificate list page (paging only)                | M1.T11, M1.T8         | in review  | #3  |
 | M1.T13 | FE    | Certificate detail page and revoke dialog          | M1.T11, M1.T9         | in review  | #3  |
+| M1.T15 | FE    | Health check before showing the app                | M1.T11, M1.T5         | in review  | #7  |
 
 **M1.T10 — Web app skeleton**
 - Vite + React + TS in `web` (scaffolded in M0.T1); React Router routes `/certificates`, `/certificates/:id`, `/bulk-issue` (placeholder), `/audit` (placeholder); `/` redirects to `/certificates`.
@@ -39,6 +40,12 @@ Frontend tasks for the Certificate Admin Console. Backend, infrastructure, test 
 - "Revoke" opens a confirm dialog with an optional reason; button disabled while sending; on success the page refreshes the certificate and the list cache.
 - 404 shows a "certificate not found" state.
 - Done when: revoke works end to end; revoking twice shows no error.
+
+**M1.T15 — Health check before showing the app**
+- `HealthGate` around the router: calls `GET /api/health` (no tenant header) and shows the app only once it answers `ok` (D62).
+- Until then: "Connecting to the service…", or "The service isn't ready" naming the down checks (or the network error), checking again every 5 s, with "Try again".
+- Once shown, the app stays shown and the gate stops checking.
+- Done when: with the API stopped or its `admin` row missing (D61), the app shows the not-ready state and no page calls the API; once health is ok the app appears without a reload.
 
 ---
 
