@@ -393,3 +393,66 @@ button.danger {
   font-size: 0.75em;
   opacity: 0.7;
 }
+
+/* Bulk issue */
+.page-intro {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+}
+
+.panel {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.preview-counts {
+  margin: 0 0 0.75rem;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.progress progress {
+  flex: 1;
+  height: 0.75rem;
+}
+
+.run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.hint,
+.outcome-counts {
+  color: var(--text-muted);
+}
+
+.badge-outcome-issued {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.badge-outcome-skipped {
+  color: var(--text-muted);
+  background: var(--neutral-bg);
+}
+
+.badge-outcome-failed {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
