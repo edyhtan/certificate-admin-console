@@ -44,15 +44,15 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 
 | Task   | Area  | Title                                              | Depends on            | Status | PR  |
 |--------|-------|----------------------------------------------------|-----------------------|--------|-----|
-| M1.T1  | INFRA | MySQL in Docker Compose and `npm run dev`          | —                     | done   | local |
-| M1.T2  | BE    | NestJS app skeleton, validation and error format   | —                     | done   | local |
-| M1.T3  | BE    | Prisma schema and initial migration                | M1.T1, M1.T2          | done   | local |
-| M1.T4  | BE    | API test harness (Vitest + Supertest + test database) | M1.T3                | done   | local |
-| M1.T5  | BE    | `AppContext` port and single-tenant binding        | M1.T3                 | done   | local |
-| M1.T6  | BE    | Sydney seed, test baseline and `db:setup`          | M1.T3, M1.T4          | done   | local |
-| M1.T7  | BE    | Courses and participants endpoints                 | M1.T4, M1.T5, M1.T6   | done   | local |
-| M1.T8  | BE    | Certificate list (paging only) and detail          | M1.T4, M1.T5, M1.T6   | done   | local |
-| M1.T9  | BE    | Audit writer and revoke endpoint                   | M1.T8                 | done   | local |
+| M1.T1  | INFRA | MySQL in Docker Compose and `npm run dev`          | —                     | in review | #4  |
+| M1.T2  | BE    | NestJS app skeleton, validation and error format   | —                     | in review | #4  |
+| M1.T3  | BE    | Prisma schema and initial migration                | M1.T1, M1.T2          | in review | #4  |
+| M1.T4  | BE    | API test harness (Vitest + Supertest + test database) | M1.T3                | in review | #4  |
+| M1.T5  | BE    | `AppContext` port and single-tenant binding        | M1.T3                 | in review | #4  |
+| M1.T6  | BE    | Sydney seed, test baseline and `db:setup`          | M1.T3, M1.T4          | in review | #4  |
+| M1.T7  | BE    | Courses and participants endpoints                 | M1.T4, M1.T5, M1.T6   | in review | #4  |
+| M1.T8  | BE    | Certificate list (paging only) and detail          | M1.T4, M1.T5, M1.T6   | in review | #4  |
+| M1.T9  | BE    | Audit writer and revoke endpoint                   | M1.T8                 | in review | #4  |
 
 **M1.T1 — MySQL in Docker Compose and `npm run dev`**
 - `docker-compose.yml`: MySQL 8.4, `utf8mb4` / `utf8mb4_0900_ai_ci` server defaults, UTC server timezone, healthcheck, named volume.
