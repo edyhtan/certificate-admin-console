@@ -41,7 +41,9 @@ export function CertificateDetailPage() {
       />
     )
   } else {
-    return <CertificateView certificate={query.data} />
+    // Keyed by id: moving to another certificate starts a fresh view, so an open revoke
+    // dialog or a "revoked" notice can't carry over to it.
+    return <CertificateView key={query.data.id} certificate={query.data} />
   }
 
   return (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { CertificateDetail } from '@cert/shared'
 import { certificateKeys } from '../features/certificates/api'
@@ -229,5 +229,55 @@ describe('CertificateDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Revoke' }))
     expect(within(screen.getByRole('dialog')).queryByRole('alert')).not.toBeInTheDocument()
     expect(attempts).toBe(1)
+  })
+
+  describe('moving to another certificate', () => {
+    // Certificate 2 is already cached, so it shows at once with no loading state in between.
+    // Nothing from certificate 1's view may carry over to it.
+    const second = certificateDetail({ id: 2, serial: 'SYD-2026-000002' })
+
+    function setup() {
+      const api = mockFetch((req) => {
+        if (req.method === 'POST' && req.url.pathname === '/api/certificates/1/revoke') {
+          return json(revoked(certificateDetail()))
+        }
+        if (req.url.pathname === '/api/certificates/1') return json(certificateDetail())
+        if (req.url.pathname === '/api/certificates/2') return json(second)
+        if (req.url.pathname === '/api/certificates') return json(certificatePage([certificateSummary()]))
+        return json({ error: 'not_found', message: 'Not found' }, 404)
+      })
+      const queryClient = createTestQueryClient()
+      queryClient.setQueryData(certificateKeys.detail(2), second)
+      return { ...api, queryClient }
+    }
+
+    it('does not show the "revoked" notice on the next certificate', async () => {
+      const { queryClient } = setup()
+      const user = userEvent.setup()
+      const { router } = renderRoute('/certificates/1', queryClient)
+      await user.click(await screen.findByRole('button', { name: 'Revoke' }))
+      await user.click(screen.getByRole('button', { name: 'Revoke certificate' }))
+      await screen.findByText('Certificate revoked.')
+
+      await act(() => router.navigate('/certificates/2'))
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'SYD-2026-000002' })).toBeInTheDocument()
+      expect(detailValue('Status')).toBe('Valid')
+      expect(screen.queryByText('Certificate revoked.')).not.toBeInTheDocument()
+    })
+
+    it('closes an open revoke dialog, so it can never revoke the next certificate', async () => {
+      const { requests, queryClient } = setup()
+      const user = userEvent.setup()
+      const { router } = renderRoute('/certificates/1', queryClient)
+      await user.click(await screen.findByRole('button', { name: 'Revoke' }))
+      expect(screen.getByRole('dialog', { name: 'Revoke SYD-2026-000001?' })).toBeInTheDocument()
+
+      await act(() => router.navigate('/certificates/2'))
+
+      expect(await screen.findByRole('heading', { level: 1, name: 'SYD-2026-000002' })).toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(requests.filter((r) => r.method === 'POST')).toHaveLength(0)
+    })
   })
 })
