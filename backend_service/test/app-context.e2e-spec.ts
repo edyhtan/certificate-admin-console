@@ -51,29 +51,19 @@ describe('AppContext tenant binding (e2e)', () => {
       await app.close();
     });
 
-    it('gives a core service the Sydney database, timezone, prefix and admin actor', async () => {
-      const res = await api(app).get('/api/_test/context');
-      expect(res.status).toBe(200);
-      expect(res.body).toEqual({
-        database: testDatabaseName(),
-        timeZone: 'Australia/Sydney',
-        serialPrefix: 'SYD',
-        actor: { id: TEST_ADMIN.id, name: TEST_ADMIN.name },
-        now: expect.any(String),
-      });
-    });
-
     it.each([
+      ['SYD', 'Australia/Sydney'],
       ['PER', 'Australia/Perth'],
       ['ADL', 'Australia/Adelaide'],
-    ] as const)('gives the same core service %s’s database, timezone and prefix', async (code, timeZone) => {
+    ] as const)('gives the same core service %s’s database, timezone, prefix and admin', async (code, timeZone) => {
       const res = await api(app, code).get('/api/_test/context');
       expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({
+      expect(res.body).toEqual({
         database: testDatabaseName(code),
         timeZone,
         serialPrefix: code,
         actor: { id: TEST_ADMIN.id, name: TEST_ADMIN.name },
+        now: expect.any(String),
       });
     });
 

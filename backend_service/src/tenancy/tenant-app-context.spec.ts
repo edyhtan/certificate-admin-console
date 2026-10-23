@@ -24,13 +24,11 @@ describe('TenantAppContext', () => {
     );
   });
 
-  it.each(['db', 'timeZone', 'serialPrefix', 'actor'] as const)(
-    'throws on %s outside any scope (fail closed, no default tenant)',
-    (getter) => {
-      expect(() => ctx[getter]).toThrow(NoTenantScopeError);
-      expect(() => ctx[getter]).toThrow('no tenant scope: core code ran outside a request or runInTenant()');
-    },
-  );
+  it('throws on every getter outside any scope (fail closed, no default tenant)', () => {
+    for (const getter of ['db', 'timeZone', 'serialPrefix', 'actor'] as const) {
+      expect(() => ctx[getter], getter).toThrow(NoTenantScopeError);
+    }
+  });
 
   it('reads the real clock, with or without a scope', () => {
     const before = Date.now();

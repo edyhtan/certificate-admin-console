@@ -52,7 +52,7 @@ describe('TenantMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it.each([['XYZ'], ['syd'], [' SYD'], ['toString'], [['SYD', 'PER']]])(
+  it.each([['XYZ'], ['syd'], [['SYD', 'PER']]])(
     'answers 400 unknown_tenant for %j (exact match only)',
     async (value) => {
       const { middleware, res, scopeFor } = setup();

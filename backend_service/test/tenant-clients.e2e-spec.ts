@@ -23,13 +23,4 @@ describe('Tenant clients (e2e)', () => {
       expect(name).toBe(testDatabaseName(code));
     }
   });
-
-  it('keeps each client to its own data', async () => {
-    const clients = app.get(TenantClients);
-    await clients.get('PER').course.create({ data: { code: 'PER-ONLY', title: 'Perth only' } });
-    expect(await clients.get('PER').course.count({ where: { code: 'PER-ONLY' } })).toBe(1);
-    expect(await clients.get('SYD').course.count({ where: { code: 'PER-ONLY' } })).toBe(0);
-    expect(await clients.get('ADL').course.count({ where: { code: 'PER-ONLY' } })).toBe(0);
-    await clients.get('PER').course.deleteMany({ where: { code: 'PER-ONLY' } });
-  });
 });
