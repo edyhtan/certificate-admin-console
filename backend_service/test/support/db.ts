@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { PrismaClient } from '@prisma/client';
 import { SYDNEY_SEED } from '../../src/seed/manifest.js';
 import { SYDNEY } from '../../src/seed/profiles/sydney.js';
@@ -14,6 +16,18 @@ export function testDb(): PrismaClient {
 export async function closeTestDb(): Promise<void> {
   await client?.$disconnect();
   client = undefined;
+}
+
+/**
+ * Runs a plain SQL script on the test database through `prisma db execute`, for statements
+ * MySQL can't prepare (CREATE/DROP TRIGGER, error 1295), which Prisma's raw queries always do.
+ */
+export function execSql(sql: string): void {
+  execFileSync('npx', ['prisma', 'db', 'execute', '--stdin', '--url', process.env.DATABASE_URL ?? ''], {
+    cwd: fileURLToPath(new URL('../..', import.meta.url)),
+    input: sql,
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
 }
 
 /**
