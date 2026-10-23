@@ -1,0 +1,151 @@
+// One schema, identical in every tenant database (spec §3.2). No tenant_id columns:
+// the database you are connected to is the tenant.
+//
+// Naming: models and fields are camelCase in code and snake_case in MySQL (@map / @@map).
+// Unique indexes the API reports on are named after their API field (e.g. "code", "email"),
+// so a P2002 error can name the field (D51).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum EnrollmentStatus {
+  enrolled
+  completed
+}
+
+enum CertificateStatus {
+  valid
+  revoked
+}
+
+/// Exactly one row, `admin`, per tenant database. Every request acts as it (no auth).
+model Admin {
+  id       Int    @id @default(autoincrement())
+  username String @unique @db.VarChar(64)
+  name     String @db.VarChar(200)
+
+  issuedCertificates  Certificate[] @relation("CertificateIssuedBy")
+  revokedCertificates Certificate[] @relation("CertificateRevokedBy")
+
+  @@map("admin")
+}
+
+model Course {
+  id    Int    @id @default(autoincrement())
+  code  String @unique(map: "code") @db.VarChar(20)
+  title String @db.VarChar(200)
+
+  enrollments  Enrollment[]
+  certificates Certificate[]
+
+  @@map("course")
+}
+
+/// The brief's "learner".
+model Participant {
+  id        Int    @id @default(autoincrement())
+  firstName String @map("first_name") @db.VarChar(100)
+  lastName  String @map("last_name") @db.VarChar(100)
+  email     String @unique(map: "email") @db.VarChar(254)
+
+  enrollments  Enrollment[]
+  certificates Certificate[]
+
+  @@map("participant")
+}
+
+model Enrollment {
+  id            Int              @id @default(autoincrement())
+  participantId Int              @map("participant_id")
+  courseId      Int              @map("course_id")
+  status        EnrollmentStatus @default(enrolled)
+  enrolledAt    DateTime         @default(now()) @map("enrolled_at") @db.DateTime(3)
+  completedAt   DateTime?        @map("completed_at") @db.DateTime(3)
+
+  participant Participant  @relation(fields: [participantId], references: [id])
+  course      Course       @relation(fields: [courseId], references: [id])
+  certificate Certificate?
+
+  @@unique([participantId, courseId], map: "enrollment_participant_course_key")
+  // Bulk issue candidates: completed enrollments of one course.
+  @@index([courseId, status], map: "enrollment_course_status_idx")
+  @@map("enrollment")
+}
+
+/// One counter per year in tenant local time (spec §5.2, D37).
+model SerialCounter {
+  year      Int @id
+  lastValue Int @map("last_value")
+
+  @@map("serial_counter")
+}
+
+/// One row is one certificate issuance. It exists only once issued, and records a later revoke.
+model Certificate {
+  id              Int               @id @default(autoincrement())
+  /// At most one certificate per enrollment: the only duplicate guard bulk issue needs.
+  enrollmentId    Int               @unique(map: "certificate_enrollment_key") @map("enrollment_id")
+  participantId   Int               @map("participant_id")
+  courseId        Int               @map("course_id")
+  serial          String            @unique(map: "certificate_serial_key") @db.VarChar(32)
+  /// Copied at issue time; what was printed stays printed.
+  participantName String            @map("participant_name") @db.VarChar(201)
+  courseTitle     String            @map("course_title") @db.VarChar(200)
+  status          CertificateStatus @default(valid)
+  issuedAt        DateTime          @map("issued_at") @db.DateTime(3)
+  issuedById      Int               @map("issued_by")
+  revokedAt       DateTime?         @map("revoked_at") @db.DateTime(3)
+  revokedById     Int?              @map("revoked_by")
+  revokeReason    String?           @map("revoke_reason") @db.VarChar(500)
+
+  enrollment  Enrollment   @relation(fields: [enrollmentId], references: [id])
+  participant Participant  @relation(fields: [participantId], references: [id])
+  course      Course       @relation(fields: [courseId], references: [id])
+  issuedBy    Admin        @relation("CertificateIssuedBy", fields: [issuedById], references: [id])
+  revokedBy   Admin?       @relation("CertificateRevokedBy", fields: [revokedById], references: [id])
+  auditEvents AuditEvent[]
+
+  // Default list sort, newest first, id as tie-breaker.
+  @@index([issuedAt, id], map: "certificate_issued_at_id_idx")
+  @@index([participantName], map: "certificate_participant_name_idx")
+  @@index([courseTitle], map: "certificate_course_title_idx")
+  @@index([courseId], map: "certificate_course_idx")
+  @@index([participantId], map: "certificate_participant_idx")
+  @@index([issuedById], map: "certificate_issued_by_idx")
+  @@index([revokedById], map: "certificate_revoked_by_idx")
+  @@map("certificate")
+}
+
+/// Append-only: MySQL triggers in the migration reject UPDATE and DELETE (D38).
+/// Who and what are copied onto the row, so the log reads on its own.
+model AuditEvent {
+  id              Int      @id @default(autoincrement())
+  occurredAt      DateTime @default(now()) @map("occurred_at") @db.DateTime(3)
+  /// `certificate.issued` | `certificate.revoked`
+  action          String   @db.VarChar(64)
+  actorId         Int      @map("actor_id")
+  actorName       String   @map("actor_name") @db.VarChar(200)
+  courseId        Int      @map("course_id")
+  courseTitle     String   @map("course_title") @db.VarChar(200)
+  participantId   Int      @map("participant_id")
+  participantName String   @map("participant_name") @db.VarChar(201)
+  certificateId   Int      @map("certificate_id")
+  serial          String   @db.VarChar(32)
+  /// e.g. `{ "reason": "..." }` for a revoke.
+  details         Json?
+
+  certificate Certificate @relation(fields: [certificateId], references: [id])
+
+  // Audit log page and certificate trail (spec §5.7), newest first.
+  @@index([occurredAt, id], map: "audit_event_occurred_at_id_idx")
+  @@index([certificateId, occurredAt], map: "audit_event_certificate_idx")
+  @@index([courseId, occurredAt], map: "audit_event_course_idx")
+  @@index([action, occurredAt], map: "audit_event_action_idx")
+  @@map("audit_event")
+}

@@ -6,7 +6,7 @@ The HTTP API between `web` and `backend_service`. The schemas and types live in 
 
 ## Conventions
 
-- **Base path:** every route starts with `/api`.
+- **Base path:** every route starts with `/api`. Locally the API listens on `http://localhost:3000` (`API_PORT`) and the web dev server proxies `/api` to it; see `docs/local-services.md`.
 - **Tenant header:** every route except `GET /api/health` and `GET /api/tenants` needs `tenant_id: <tenant code>` (e.g. `SYD`). A missing or unknown code returns `400 unknown_tenant`. Until M3 the API runs as Sydney only and ignores the header, but the web app sends it from M1 (`SYD`). Paths never contain the tenant.
 - **Times:** responses carry instants as UTC ISO-8601 strings ending in `Z` (`2026-12-31T15:30:00.000Z`). Any response with instants also carries the tenant's IANA `timezone`; the web app formats dates in that zone, never the browser's (spec §4).
 - **Ids:** positive integers. An id from another tenant is simply not found (`404`).
@@ -53,10 +53,10 @@ Every error has the same body:
 
 ### `GET /api/health`
 
-No tenant header (D50). Each check is `up` or `down` with its duration; reasons go to the server log only.
+No tenant header (D50). Each check is `up` or `down` with its duration; reasons go to the server log only. M1–M2 checks the database and the `admin` row that writes act as (D61).
 
 ```json
-{ "status": "ok", "checks": { "database": { "status": "up", "durationMs": 1 } } }
+{ "status": "ok", "checks": { "database": { "status": "up", "durationMs": 1 }, "admin": { "status": "up", "durationMs": 1 } } }
 ```
 
 `503` with `"status": "error"` when any check is down. Sent with `Cache-Control: no-store`.

@@ -218,3 +218,17 @@ Section format:
 
 **Not covered:** <scenarios left out and why, or "none">
 ```
+
+## 12. Local services
+
+Ports, start commands and health checks are in `docs/local-services.md`. In short:
+
+| Service | Address | Start |
+|---------|---------|-------|
+| API | `http://localhost:3000/api` (`API_PORT`) | `npm run dev:api` (API only) or `npm run dev` (API and web) |
+| Web | `http://localhost:5173`, proxies `/api` to the API port | `npm run dev -w web` once the API is up |
+| MySQL | `127.0.0.1:3307` (`MYSQL_PORT`) | Started by the commands above (`npm run db:up`) |
+
+- Before starting the API, check whether one is already running: `curl -s localhost:3000/api/health`. If it answers, reuse it; don't start a second copy.
+- If you change the API port, set `API_PORT` both in `backend_service/.env` and in the environment of the web dev server.
+- Frontend agents send `tenant_id: SYD` until M3 (D48).
