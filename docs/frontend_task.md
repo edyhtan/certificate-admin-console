@@ -12,10 +12,10 @@ Frontend tasks for the Certificate Admin Console. Backend, infrastructure, test 
 
 | Task   | Area  | Title                                              | Depends on            | Status | PR  |
 |--------|-------|----------------------------------------------------|-----------------------|--------|-----|
-| M1.T10 | FE    | Web app skeleton: Vite, router, query client, proxy | —                    | in progress |     |
-| M1.T11 | FE    | API client, date formatting and shared UI states   | M1.T10                | in progress |     |
-| M1.T12 | FE    | Certificate list page (paging only)                | M1.T11, M1.T8         | in progress |     |
-| M1.T13 | FE    | Certificate detail page and revoke dialog          | M1.T11, M1.T9         | in progress |     |
+| M1.T10 | FE    | Web app skeleton: Vite, router, query client, proxy | —                    | in review  | #3  |
+| M1.T11 | FE    | API client, date formatting and shared UI states   | M1.T10                | in review  | #3  |
+| M1.T12 | FE    | Certificate list page (paging only)                | M1.T11, M1.T8         | in review  | #3  |
+| M1.T13 | FE    | Certificate detail page and revoke dialog          | M1.T11, M1.T9         | in review  | #3  |
 
 **M1.T10 — Web app skeleton**
 - Vite + React + TS in `web` (scaffolded in M0.T1); React Router routes `/certificates`, `/certificates/:id`, `/bulk-issue` (placeholder), `/audit` (placeholder); `/` redirects to `/certificates`.
