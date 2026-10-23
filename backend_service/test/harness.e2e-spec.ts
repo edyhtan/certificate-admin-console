@@ -99,7 +99,7 @@ describe('test harness (e2e)', () => {
         status: 'valid',
         issuedById: TEST_ADMIN.id,
       });
-      expect(cert.serial).toMatch(/^SYD-2026-\d{6}$/);
+      expect(cert.serial).toMatch(/^SYD-2099-\d{6}$/);
     });
 
     it('give each row unique defaults', async () => {

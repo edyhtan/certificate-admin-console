@@ -11,7 +11,8 @@ import { TEST_ADMIN, testDb } from './db.js';
 /**
  * Test data factories. Each creates one row with unique defaults and takes overrides.
  * Factories that need a parent create it unless one is passed in.
- * Certificates get serials from a local sequence; they don't touch `serial_counter`.
+ * Certificates get serials `SYD-2099-…` from a local sequence, so they never clash with the
+ * Sydney seed's 2026 serials; they don't touch `serial_counter`.
  */
 
 let seq = 0;
@@ -86,7 +87,7 @@ export async function createCertificate(
       enrollmentId: enrollment.id,
       participantId: participant.id,
       courseId: course.id,
-      serial: options.serial ?? `SYD-2026-${String(n).padStart(6, '0')}`,
+      serial: options.serial ?? `SYD-2099-${String(n).padStart(6, '0')}`,
       participantName: `${participant.firstName} ${participant.lastName}`,
       courseTitle: course.title,
       issuedAt: options.issuedAt ?? new Date(),
