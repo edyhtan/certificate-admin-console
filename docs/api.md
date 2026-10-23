@@ -53,10 +53,10 @@ Every error has the same body:
 
 ### `GET /api/health`
 
-No tenant header (D50). Each check is `up` or `down` with its duration; reasons go to the server log only.
+No tenant header (D50). Each check is `up` or `down` with its duration; reasons go to the server log only. M1–M2 checks the database and the `admin` row that writes act as (D61).
 
 ```json
-{ "status": "ok", "checks": { "database": { "status": "up", "durationMs": 1 } } }
+{ "status": "ok", "checks": { "database": { "status": "up", "durationMs": 1 }, "admin": { "status": "up", "durationMs": 1 } } }
 ```
 
 `503` with `"status": "error"` when any check is down. Sent with `Cache-Control: no-store`.

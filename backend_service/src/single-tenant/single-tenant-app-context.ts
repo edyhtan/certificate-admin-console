@@ -21,6 +21,10 @@ export class SingleTenantAppContext
 {
   private readonly logger = new Logger(SingleTenantAppContext.name);
   private admin: Actor | undefined;
+  /** The load in progress, so concurrent callers share one query. */
+  private loading: Promise<Actor | undefined> | undefined;
+  /** The last problem logged, so retries don't log it again on every request. */
+  private lastProblem: string | undefined;
 
   constructor(
     private readonly config: AppConfig,
@@ -29,15 +33,29 @@ export class SingleTenantAppContext
     super();
   }
 
-  /** Loads the actor once. The app still starts without it, so health and setup can run. */
+  /** Tries to load the actor. The app still starts without it, so health and setup can run. */
   async onApplicationBootstrap(): Promise<void> {
-    try {
-      await this.loadActor();
-    } catch (error) {
-      this.logger.warn(
-        `could not load the "${ADMIN_USERNAME}" row: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
+    await this.ensureActor();
+  }
+
+  /**
+   * The actor, loading the `admin` row first if it isn't loaded yet. Resolves to undefined
+   * while the row can't be loaded (database down, or not seeded yet) and tries again on the
+   * next call, so the API recovers without a restart. Never rejects.
+   */
+  ensureActor(): Promise<Actor | undefined> {
+    if (this.admin) return Promise.resolve(this.admin);
+    this.loading ??= this.loadActor()
+      .catch((error: unknown) => {
+        this.reportProblem(
+          `could not load the "${ADMIN_USERNAME}" row: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        return undefined;
+      })
+      .finally(() => {
+        this.loading = undefined;
+      });
+    return this.loading;
   }
 
   /** Reads the `admin` row; returns undefined when the database has none yet. */
@@ -48,11 +66,20 @@ export class SingleTenantAppContext
     });
     this.admin = row ?? undefined;
     if (!row) {
-      this.logger.warn(
+      this.reportProblem(
         `no "${ADMIN_USERNAME}" row in the database yet; run npm run db:setup`,
       );
+    } else if (this.lastProblem) {
+      this.lastProblem = undefined;
+      this.logger.log(`loaded the "${ADMIN_USERNAME}" row`);
     }
     return this.admin;
+  }
+
+  private reportProblem(message: string): void {
+    if (message === this.lastProblem) return;
+    this.lastProblem = message;
+    this.logger.warn(message);
   }
 
   get db(): PrismaClient {
@@ -70,8 +97,9 @@ export class SingleTenantAppContext
   get actor(): Actor {
     if (!this.admin) {
       // Fail closed: never write audit rows or certificates without a known actor.
+      // LoadActorInterceptor retries the load before every write, so no restart is needed.
       throw new Error(
-        `no "${ADMIN_USERNAME}" row loaded; run npm run db:setup and restart the API`,
+        `no "${ADMIN_USERNAME}" row loaded; run npm run db:setup`,
       );
     }
     return this.admin;

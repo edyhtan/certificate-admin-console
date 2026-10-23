@@ -1,7 +1,10 @@
 import { Global, Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppContext } from '../core/context/app-context.js';
 import { HEALTH_PROBES } from '../health/health-probe.js';
 import { PrismaHealthProbe } from '../health/prisma-health-probe.js';
+import { AdminHealthProbe } from './admin-health-probe.js';
+import { LoadActorInterceptor } from './load-actor.interceptor.js';
 import { SingleTenantAppContext } from './single-tenant-app-context.js';
 import { SingleTenantDatabase } from './single-tenant-database.js';
 
@@ -17,11 +20,16 @@ import { SingleTenantDatabase } from './single-tenant-database.js';
     { provide: AppContext, useExisting: SingleTenantAppContext },
     {
       provide: HEALTH_PROBES,
-      useFactory: (database: SingleTenantDatabase) => [
+      useFactory: (
+        database: SingleTenantDatabase,
+        ctx: SingleTenantAppContext,
+      ) => [
         new PrismaHealthProbe('database', database.client),
+        new AdminHealthProbe(ctx),
       ],
-      inject: [SingleTenantDatabase],
+      inject: [SingleTenantDatabase, SingleTenantAppContext],
     },
+    { provide: APP_INTERCEPTOR, useClass: LoadActorInterceptor },
   ],
   exports: [AppContext, HEALTH_PROBES],
 })
