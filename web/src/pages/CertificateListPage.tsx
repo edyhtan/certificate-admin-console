@@ -12,6 +12,7 @@ import { SearchBox } from '../components/SearchBox'
 import { StatusBadge } from '../components/StatusBadge'
 import { EmptyState, ErrorState, LoadingState } from '../components/states'
 import { useCertificateList } from '../features/certificates/api'
+import { ExportButton } from '../features/certificates/ExportButton'
 import {
   filterQuery,
   hasFilters,
@@ -139,6 +140,7 @@ export function CertificateListPage() {
       <div className="page-heading">
         <h1>Certificates</h1>
         <div className="page-actions">
+          <ExportButton filters={filterQuery(params)} />
           <Link className="button-link" to="/bulk-issue">
             Issue certificates
           </Link>

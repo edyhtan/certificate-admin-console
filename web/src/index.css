@@ -456,3 +456,21 @@ button.primary {
   color: var(--danger);
   background: var(--danger-bg);
 }
+
+/* Export */
+.export {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.export button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.export .form-error {
+  margin: 0;
+}
