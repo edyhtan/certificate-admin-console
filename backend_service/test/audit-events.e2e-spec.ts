@@ -1,9 +1,8 @@
 import { auditEventListResponseSchema, TENANT_HEADER } from '@cert/shared';
 import type { INestApplication } from '@nestjs/common';
-import request from 'supertest';
 import { SYDNEY_SEED } from '../src/seed/manifest.js';
 import { resetToSydneySeed, TEST_ADMIN } from './support/db.js';
-import { createTestApp } from './support/test-app.js';
+import { api, createTestApp } from './support/test-app.js';
 
 const C = SYDNEY_SEED.certificates;
 type Event = { id: number; action: string; serial: string; occurredAt: string; certificateId: number; courseId: number };
@@ -11,7 +10,7 @@ type Event = { id: number; action: string; serial: string; occurredAt: string; c
 describe('Audit events (e2e)', () => {
   let app: INestApplication;
   const list = (query: Record<string, string | number> = {}) =>
-    request(app.getHttpServer()).get('/api/audit-events').set(TENANT_HEADER, 'SYD').query(query);
+    api(app).get('/api/audit-events').set(TENANT_HEADER, 'SYD').query(query);
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -90,7 +89,7 @@ describe('Audit events (e2e)', () => {
   });
 
   it('shows a new revoke at the top', async () => {
-    await request(app.getHttpServer())
+    await api(app)
       .post(`/api/certificates/${C.newYear.id}/revoke`)
       .send({ reason: 'Wrong person' });
     const [top] = (await list()).body.items;

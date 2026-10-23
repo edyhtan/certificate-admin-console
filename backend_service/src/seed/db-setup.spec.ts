@@ -1,22 +1,36 @@
 import type { PrismaClient } from '@prisma/client';
 import { profileFor, setUpDatabase } from './db-setup.js';
+import { SEED_PROFILES } from './profiles/index.js';
+import { ADELAIDE } from './profiles/adelaide.js';
+import { PERTH } from './profiles/perth.js';
 import { SYDNEY } from './profiles/sydney.js';
 
 describe('profileFor', () => {
-  it('picks the Sydney profile for SYD in Australia/Sydney', () => {
-    expect(profileFor('SYD', 'Australia/Sydney')).toBe(SYDNEY);
+  it.each([
+    ['SYD', SYDNEY],
+    ['PER', PERTH],
+    ['ADL', ADELAIDE],
+  ] as const)('picks the %s profile', (code, profile) => {
+    expect(profileFor(code)).toBe(profile);
   });
 
-  it('fails for a prefix without a profile', () => {
-    expect(() => profileFor('XYZ', 'Australia/Sydney')).toThrow(
-      'no seed profile for APP_SERIAL_PREFIX=XYZ',
-    );
+  it('fails for a code without a profile', () => {
+    expect(() => profileFor('XYZ' as never)).toThrow('no seed profile for tenant XYZ');
   });
 
-  it('fails when the timezone does not match the profile', () => {
-    expect(() => profileFor('SYD', 'Australia/Perth')).toThrow(
-      'seed profile SYD is for Australia/Sydney, but APP_TIMEZONE=Australia/Perth',
-    );
+  it('fails when a profile’s zone or prefix disagrees with the registry', () => {
+    const original = SEED_PROFILES.PER;
+    const profiles = SEED_PROFILES as Record<string, typeof original>;
+    try {
+      profiles.PER = { ...original, timeZone: 'Australia/Sydney' };
+      expect(() => profileFor('PER')).toThrow(
+        'seed profile for PER is for Australia/Sydney, but the registry says Australia/Perth',
+      );
+      profiles.PER = { ...original, serialPrefix: 'SYD' };
+      expect(() => profileFor('PER')).toThrow('seed profile for PER uses serial prefix SYD');
+    } finally {
+      profiles.PER = original;
+    }
   });
 });
 
@@ -30,17 +44,13 @@ describe('setUpDatabase', () => {
 
   it('seeds an empty database', async () => {
     const db = dbWithAdmins(0);
-    await expect(
-      setUpDatabase(db as unknown as PrismaClient, SYDNEY),
-    ).resolves.toBe('seeded');
+    await expect(setUpDatabase(db as unknown as PrismaClient, SYDNEY)).resolves.toBe('seeded');
     expect(db.$transaction).toHaveBeenCalledOnce();
   });
 
   it('leaves a seeded database alone', async () => {
     const db = dbWithAdmins(1);
-    await expect(
-      setUpDatabase(db as unknown as PrismaClient, SYDNEY),
-    ).resolves.toBe('already seeded');
+    await expect(setUpDatabase(db as unknown as PrismaClient, SYDNEY)).resolves.toBe('already seeded');
     expect(db.$transaction).not.toHaveBeenCalled();
   });
 });

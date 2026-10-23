@@ -1,6 +1,6 @@
 import { inject } from 'vitest';
 import { toErrorResponse } from '../src/common/errors/to-error-response.js';
-import { resetDatabase, TEST_ADMIN, testDb } from './support/db.js';
+import { resetDatabase, TEST_ADMIN, testDatabaseName, testDb } from './support/db.js';
 import {
   createCertificate,
   createCourse,
@@ -28,9 +28,17 @@ describe('test harness (e2e)', () => {
   describe('throwaway database', () => {
     it('is this run’s own database, not the dev database', async () => {
       const [{ name }] = await db.$queryRaw<{ name: string }[]>`SELECT DATABASE() AS name`;
-      expect(name).toMatch(/^cert_test_[a-z0-9]+_\d+$/);
-      expect(inject('databaseUrl')).toContain(`/${name}`);
-      expect(process.env.DATABASE_URL).toBe(inject('databaseUrl'));
+      expect(name).toMatch(/^cert_test_[a-z0-9]+_\d+_cert_syd$/);
+      expect(name).toBe(`${inject('tenantDatabasePrefix')}cert_syd`);
+      expect(process.env.TENANT_DATABASE_PREFIX).toBe(inject('tenantDatabasePrefix'));
+    });
+
+    it('has one throwaway database per tenant, each with its admin', async () => {
+      for (const code of ['SYD', 'PER', 'ADL'] as const) {
+        const [{ name }] = await testDb(code).$queryRaw<{ name: string }[]>`SELECT DATABASE() AS name`;
+        expect(name).toBe(testDatabaseName(code));
+        expect(await testDb(code).admin.count()).toBe(1);
+      }
     });
 
     it('is fully migrated', async () => {

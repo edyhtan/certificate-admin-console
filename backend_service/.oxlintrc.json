@@ -24,6 +24,10 @@
                 "message": "Core code reads its context through AppContext; async storage belongs to the tenancy module (spec §5.1, D46)."
               },
               {
+                "name": "nestjs-cls",
+                "message": "Core code reads its context through AppContext; CLS belongs to the tenancy module (D64)."
+              },
+              {
                 "name": "@nestjs/common",
                 "importNames": ["Headers", "Req", "Request"],
                 "message": "Core code never reads headers or the raw request; take business inputs with @Body/@Query/@Param and the context from AppContext (spec §5.1)."

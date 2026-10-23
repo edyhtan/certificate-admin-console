@@ -1,3 +1,5 @@
+import { ADELAIDE } from './profiles/adelaide.js';
+import { PERTH } from './profiles/perth.js';
 import { SYDNEY } from './profiles/sydney.js';
 import type { SeedProfile } from './seed-profile.js';
 
@@ -100,5 +102,7 @@ export function seedManifest(profile: SeedProfile): SeedManifest {
   };
 }
 
-/** The Sydney seed: M1-M2 dev data and API test baseline (D48). */
+/** The Sydney seed: the default API test baseline (D48). */
 export const SYDNEY_SEED = seedManifest(SYDNEY);
+export const PERTH_SEED = seedManifest(PERTH);
+export const ADELAIDE_SEED = seedManifest(ADELAIDE);
