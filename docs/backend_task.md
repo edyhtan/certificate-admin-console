@@ -53,7 +53,7 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 | M1.T7  | BE    | Courses and participants endpoints                 | M1.T4, M1.T5, M1.T6   | in review | #4  |
 | M1.T8  | BE    | Certificate list (paging only) and detail          | M1.T4, M1.T5, M1.T6   | in review | #4  |
 | M1.T9  | BE    | Audit writer and revoke endpoint                   | M1.T8                 | in review | #4  |
-| M1.T14 | INFRA | Tenant data inspector (dev CLI)                    | M1.T6                 | in review |     |
+| M1.T14 | INFRA | Tenant data inspector (dev CLI)                    | M1.T6                 | in review | #5  |
 
 **M1.T1 — MySQL in Docker Compose and `npm run dev`**
 - `docker-compose.yml`: MySQL 8.4, `utf8mb4` / `utf8mb4_0900_ai_ci` server defaults, UTC server timezone, healthcheck, named volume.
