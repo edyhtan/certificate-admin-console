@@ -14,10 +14,11 @@ describe('CertificatesController', () => {
   });
   const controller = new CertificatesController(service as unknown as CertificatesService);
 
-  it('lists with the validated paging', async () => {
+  it('lists with the validated query', async () => {
     service.list.mockResolvedValue({ items: [] });
-    await controller.list({ page: 2, pageSize: 10 });
-    expect(service.list).toHaveBeenCalledWith({ page: 2, pageSize: 10 });
+    const query = { page: 2, pageSize: 10, sort: 'serial', order: 'asc' } as const;
+    await controller.list(query);
+    expect(service.list).toHaveBeenCalledWith(query);
   });
 
   it('gets by the validated id', async () => {

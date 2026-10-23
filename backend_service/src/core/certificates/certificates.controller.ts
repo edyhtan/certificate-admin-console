@@ -1,11 +1,11 @@
 import {
+  certificateListQuerySchema,
   idParamSchema,
-  paginationQuerySchema,
   revokeCertificateRequestSchema,
   type CertificateDetail,
+  type CertificateListQuery,
   type CertificateListResponse,
   type IdParam,
-  type PaginationQuery,
   type RevokeCertificate,
 } from '@cert/shared';
 import {
@@ -29,10 +29,11 @@ import { CertificatesService } from './certificates.service.js';
 export class CertificatesController {
   constructor(private readonly certificates: CertificatesService) {}
 
-  /** M1: paging only. M2.T1 switches to `certificateListQuerySchema` (search, filters, sort). */
+  /** Search, filters, sort and paging (spec §5.3). */
   @Get()
   list(
-    @Query(new ZodValidationPipe(paginationQuerySchema)) query: PaginationQuery,
+    @Query(new ZodValidationPipe(certificateListQuerySchema))
+    query: CertificateListQuery,
   ): Promise<CertificateListResponse> {
     return this.certificates.list(query);
   }
