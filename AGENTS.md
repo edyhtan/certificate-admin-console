@@ -31,6 +31,7 @@ All work comes from the task ledgers: `docs/backend_task.md` (BE, INFRA, TEST, D
 - `Depends on` lists the tasks that must be merged before this one can merge. `—` means none.
 - Update the `Status` and `PR` columns as part of your own task PR.
 - `Depends on` may name a task in the other ledger file (e.g. an FE task waiting on a BE endpoint).
+- Every task that adds or changes a service or module also has to meet section 11 (unit specs, a passing test run, an entry in your local `docs/test_plan.md`), even if its "done when" block doesn't say so.
 
 ## 2. Branches
 
@@ -54,8 +55,15 @@ main                                  always builds; only milestone merges land 
 
 ## 3. Order rules
 
-1. **Milestones are sequential.** Create `milestone/m<n+1>` from `main` only after `milestone/m<n>` is merged into `main`.
-   - If the next milestone must start while the previous one is still in review, branch it from the previous milestone branch and rebase onto `main` after that one merges. Tell the user when you do this.
+1. **Milestones are sequential.** Whenever you start a new milestone:
+   - **Make sure the previous milestone's PR is merged into `main`.** Check it, don't assume it: `gh pr list --base main --state merged --search "[M<n>]"` must show the `[M<n>]` milestone PR. If it's still open or in review, don't start the new milestone. Tell the user and wait.
+   - **Always create the new milestone branch from the latest `main`**, never from the previous milestone branch or a task branch:
+     ```bash
+     git fetch origin
+     git switch -c milestone/m<n+1>-<slug> origin/main
+     git push -u origin milestone/m<n+1>-<slug>
+     ```
+   - The first milestone (`M0`) has no previous milestone, so only the second rule applies.
 2. **Tasks merge in dependency order.** A task PR may merge only when every task in its `Depends on` column is `done`.
 3. **Independent tasks may run and merge in any order.** When two tasks are both ready, merge the lower task number first.
 4. **A milestone is done** when every task in it is `done`. Only then open the milestone PR into `main`.
@@ -82,9 +90,11 @@ If `M2.T4` needs `M2.T2` and `M2.T2` is still in review:
 2. Open the PR with base `task/m2-t2-...` and mark it **draft**.
 3. After `M2.T2` is merged, retarget the PR to the milestone branch (its commits are already there, since merges keep commits):
    ```bash
+   npm run test:all   # before every gh command that changes a PR (section 11)
    gh pr edit <pr> --base milestone/m2-core-api
    git fetch origin && git rebase origin/milestone/m2-core-api   # only if the base moved on
    git push --force-with-lease
+   npm run test:all
    gh pr ready <pr>
    ```
 
@@ -122,7 +132,10 @@ Optional body: why, not what.
 
 - [ ] Branch is up to date with its base (rebase, don't merge the base in).
 - [ ] Lint, type check and tests pass locally for every area touched.
-- [ ] New behaviour has tests, or the PR says why not.
+- [ ] Every added or changed service or module has unit specs in its own package (section 11), or the PR says why not.
+- [ ] Unit tests were run after the work was finished, and they pass.
+- [ ] Your local `docs/test_plan.md` has this task's section with the scenarios and the result of that run (the file is gitignored, so it is not in the PR).
+- [ ] `npm run test:all` passed right before every `gh` command you ran on this PR (section 11, part 4).
 - [ ] Ledger `Status` and `PR` columns updated (`docs/backend_task.md` or `docs/frontend_task.md`).
 - [ ] No unrelated changes, debug code or commented-out code.
 
@@ -134,6 +147,7 @@ Optional body: why, not what.
 | Milestone → main | **Merge commit** (no squash) | Only after the user approves               |
 
 - Never squash. The commit-by-commit history is part of the deliverable, so every task commit must survive into `main`. Clean up your own commits (fixups) before marking the PR ready, not by squashing at merge.
+- Run `npm run test:all` on the up-to-date PR branch right before `gh pr merge`, and don't merge unless it passes (section 11, part 4).
 - Delete the task branch after it merges (`gh pr merge <pr> --merge --delete-branch`).
 - Never force-push `main` or a milestone branch. `--force-with-lease` on your own task branch is fine.
 - Never rewrite history that has been merged.
@@ -153,3 +167,63 @@ Optional body: why, not what.
 - Each entry: ID (`D<n>`), the decision, why, and what it replaces (if anything). Never delete an entry. Mark a replaced one `superseded by D<n>`.
 - Update the body of the spec to match the decision in the same change, so the spec and the log never disagree.
 - During build phases, if a task forces a design change, add the decision to the log in that task's PR and tell the user.
+
+## 11. Unit tests and the test plan
+
+These rules apply to every task that adds or changes a service or module: for example a NestJS module, service, controller, guard or pipe in `backend_service`, a shared schema, or a React component, hook or helper in `web`.
+
+**1. Write unit specs in the same package as the code**
+
+- Put each spec next to the file it tests and name it `<file>.spec.ts` (`.spec.tsx` for components). Example: `backend_service/src/certificates/certificates.service.spec.ts`.
+- Specs never go in another package or in a shared top-level test folder. (`backend_service/test/` is for e2e tests only.)
+- Cover the main success path, every error or validation branch, and every edge case named in the task's "done when" block or in `docs/spec.md`.
+- Mock only what the unit talks to (database, HTTP, clock, other services), never the unit itself.
+- Specs go in the same PR as the code. A task that changes a service or module is not done without them.
+
+**2. Run the unit tests once the work is finished**
+
+- Run the package's tests after your last code change, not part-way through:
+  ```bash
+  npm run test -w backend_service   # or: npm run test -w web
+  npm test                          # unit tests for every package
+  ```
+- Every test must pass. If one fails, fix the code, or fix the test if the test is wrong, then run the tests again.
+- Never skip, delete, or `.only` / `.skip` a test, or weaken an assertion, to get a green run.
+- If a package has no test runner yet (`web` until M1.T10), say so in the PR and in `docs/test_plan.md`. Do not leave it out silently.
+
+**3. Write the scenarios to `docs/test_plan.md` after the run**
+
+- Add one section per task, in task-ID order. If your task already has a section (for example after a re-run), update it instead of adding another.
+- Record what the run actually showed. Only mark a scenario `pass` if it passed in the run you are reporting.
+- `docs/test_plan.md` is a local file. It is gitignored, so never commit it or force-add it (`git add -f`). The same goes for any other test document or report (`test-results/`, `coverage/`, JUnit XML).
+- The PR's "How to verify" section still gives the test command and the pass/fail counts, so reviewers can see the result without the file.
+- In parallel work each worktree has its own copy of the file, and it is lost when the worktree is removed. A subagent therefore puts its finished section in its final report, and the parent agent adds it to `docs/test_plan.md` in the main checkout.
+
+**4. Run the full test suite before every `gh` command that changes a PR or branch**
+
+- Before `gh pr create`, `gh pr edit`, `gh pr ready`, `gh pr merge`, or any other `gh` command that creates, changes, retargets or merges a PR or branch, run the full suite from the repo root:
+  ```bash
+  npm run test:all   # unit tests and e2e tests for every package
+  ```
+- Run it on the exact code the `gh` command acts on: your task branch, rebased onto its base. Before a merge, run it on the PR branch after it is up to date with the base.
+- Run it again before each such `gh` command. A pass from earlier in the session doesn't count once the code has changed.
+- If anything fails, don't run the `gh` command. Fix the failure and run the suite again. If the failure comes from another task's code, follow section 9 ("Base branch broken").
+- Read-only commands (`gh pr view`, `gh pr list`, `gh pr checks`, `gh pr diff`) don't need a test run.
+
+Section format:
+
+```markdown
+## M1.T4 — Certificates service
+
+- **Package:** backend_service
+- **Spec files:** `src/certificates/certificates.service.spec.ts`
+- **Command:** `npm run test -w backend_service`
+- **Result:** 12 passed, 0 failed (2026-10-22)
+
+| # | Unit                       | Scenario                                | Expected                                      | Result |
+|---|----------------------------|-----------------------------------------|-----------------------------------------------|--------|
+| 1 | CertificatesService.revoke | Revoke an active certificate            | Status becomes `revoked`, audit event written | pass   |
+| 2 | CertificatesService.revoke | Revoke a certificate already revoked    | Throws 409 `already_revoked`                  | pass   |
+
+**Not covered:** <scenarios left out and why, or "none">
+```
