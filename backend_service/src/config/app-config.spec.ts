@@ -2,6 +2,7 @@ import { AppConfig, loadAppConfig } from './app-config.js';
 
 const valid = {
   DATABASE_URL: 'mysql://root:root@127.0.0.1:3307/cert_syd',
+  DATABASE_URL_BASE: 'mysql://root:root@127.0.0.1:3307',
   APP_TIMEZONE: 'Australia/Sydney',
   APP_SERIAL_PREFIX: 'SYD',
 };
@@ -23,10 +24,29 @@ describe('loadAppConfig', () => {
     });
   });
 
-  it('defaults the port to 3000 and leaves the base URL unset', () => {
+  it('defaults the port to 3000 and the tenant database prefix to empty', () => {
     const config = loadAppConfig(valid);
     expect(config.apiPort).toBe(3000);
-    expect(config.databaseUrlBase).toBeUndefined();
+    expect(config.tenantDatabasePrefix).toBe('');
+  });
+
+  it('requires DATABASE_URL_BASE as a mysql:// URL', () => {
+    const { DATABASE_URL_BASE: _omit, ...withoutBase } = valid;
+    expect(() => loadAppConfig(withoutBase)).toThrow(/DATABASE_URL_BASE is required/);
+    expect(() => loadAppConfig({ ...valid, DATABASE_URL_BASE: 'http://x' })).toThrow(
+      /DATABASE_URL_BASE must be a mysql:\/\/ URL/,
+    );
+  });
+
+  it('accepts a test database prefix and rejects unsafe ones', () => {
+    expect(loadAppConfig({ ...valid, TENANT_DATABASE_PREFIX: 'cert_test_ab1_9_' }).tenantDatabasePrefix).toBe(
+      'cert_test_ab1_9_',
+    );
+    for (const bad of ['x;drop', 'A', 'a-b', 'a`b']) {
+      expect(() => loadAppConfig({ ...valid, TENANT_DATABASE_PREFIX: bad })).toThrow(
+        /TENANT_DATABASE_PREFIX may only contain/,
+      );
+    }
   });
 
   it('is frozen', () => {
@@ -36,7 +56,7 @@ describe('loadAppConfig', () => {
 
   it('lists every missing variable in one error', () => {
     expect(() => loadAppConfig({})).toThrow(
-      /DATABASE_URL is required[\s\S]*APP_TIMEZONE is required[\s\S]*APP_SERIAL_PREFIX is required/,
+      /DATABASE_URL is required[\s\S]*DATABASE_URL_BASE is required[\s\S]*APP_TIMEZONE is required[\s\S]*APP_SERIAL_PREFIX is required/,
     );
   });
 

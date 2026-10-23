@@ -8,11 +8,13 @@ import { IssuanceModule } from './core/issuance/issuance.module.js';
 import { ParticipantsModule } from './core/participants/participants.module.js';
 import { HealthModule } from './health/health.module.js';
 import { SingleTenantModule } from './single-tenant/single-tenant.module.js';
+import { TenancyModule } from './tenancy/tenancy.module.js';
 
 @Module({
   imports: [
     ConfigModule,
     SingleTenantModule,
+    TenancyModule,
     HealthModule,
     CoursesModule,
     ParticipantsModule,

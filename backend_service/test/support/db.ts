@@ -4,26 +4,46 @@ import { PrismaClient } from '@prisma/client';
 import { SYDNEY_SEED } from '../../src/seed/manifest.js';
 import { SYDNEY } from '../../src/seed/profiles/sydney.js';
 import { seed, type SeedResult } from '../../src/seed/seed.js';
+import {
+  tenantDatabaseName,
+  tenantDatabaseUrl,
+  type TenantCode,
+} from '../../src/tenancy/tenants.js';
 
-let client: PrismaClient | undefined;
+const clients = new Map<TenantCode, PrismaClient>();
 
-/** The harness's own client on this run's throwaway database, for factories and assertions. */
-export function testDb(): PrismaClient {
-  client ??= new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
+/** This run's throwaway database for a tenant (`SYD` by default). */
+export function testDatabaseName(code: TenantCode = 'SYD'): string {
+  return tenantDatabaseName(code, process.env.TENANT_DATABASE_PREFIX ?? '');
+}
+
+/**
+ * The harness's own client on a tenant's throwaway database (`SYD` by default), for factories
+ * and assertions.
+ */
+export function testDb(code: TenantCode = 'SYD'): PrismaClient {
+  let client = clients.get(code);
+  if (!client) {
+    client = new PrismaClient({
+      datasourceUrl: tenantDatabaseUrl(process.env.DATABASE_URL_BASE ?? '', testDatabaseName(code)),
+    });
+    clients.set(code, client);
+  }
   return client;
 }
 
 export async function closeTestDb(): Promise<void> {
-  await client?.$disconnect();
-  client = undefined;
+  await Promise.all([...clients.values()].map((c) => c.$disconnect()));
+  clients.clear();
 }
 
 /**
  * Runs a plain SQL script on the test database through `prisma db execute`, for statements
  * MySQL can't prepare (CREATE/DROP TRIGGER, error 1295), which Prisma's raw queries always do.
  */
-export function execSql(sql: string): void {
-  execFileSync('npx', ['prisma', 'db', 'execute', '--stdin', '--url', process.env.DATABASE_URL ?? ''], {
+export function execSql(sql: string, code: TenantCode = 'SYD'): void {
+  const url = tenantDatabaseUrl(process.env.DATABASE_URL_BASE ?? '', testDatabaseName(code));
+  execFileSync('npx', ['prisma', 'db', 'execute', '--stdin', '--url', url], {
     cwd: fileURLToPath(new URL('../..', import.meta.url)),
     input: sql,
     stdio: ['pipe', 'pipe', 'pipe'],

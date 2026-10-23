@@ -5,6 +5,7 @@ import { SingleTenantDatabase } from './single-tenant-database.js';
 const config = new AppConfig({
   apiPort: 3000,
   databaseUrl: 'mysql://root:root@127.0.0.1:3307/cert_syd',
+  databaseUrlBase: 'mysql://root:root@127.0.0.1:3307',
   timeZone: 'Australia/Sydney',
   serialPrefix: 'SYD',
 });

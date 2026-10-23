@@ -1,10 +1,9 @@
 import { Controller, Get, Injectable, type INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { inject } from 'vitest';
 import { AppConfig } from '../src/config/app-config.js';
 import { AppContext } from '../src/core/context/app-context.js';
 import { testAppContext } from './support/app-context.js';
-import { TEST_ADMIN } from './support/db.js';
+import { TEST_ADMIN, testDatabaseName } from './support/db.js';
 import { createTestApp } from './support/test-app.js';
 
 /** Shaped like a core service: injects AppContext and takes no context argument. */
@@ -35,7 +34,6 @@ class SampleController {
   }
 }
 
-const testDatabaseName = () => inject('databaseUrl').split('/').pop();
 
 describe('AppContext single-tenant binding (e2e)', () => {
   describe('real binding', () => {
@@ -112,6 +110,7 @@ describe('AppContext single-tenant binding (e2e)', () => {
               apiPort: 0,
               // Nothing listens on port 1, so connections are refused at once.
               databaseUrl: 'mysql://root:root@127.0.0.1:1/cert_unreachable',
+              databaseUrlBase: 'mysql://root:root@127.0.0.1:1',
               timeZone: 'Australia/Sydney',
               serialPrefix: 'SYD',
             }),

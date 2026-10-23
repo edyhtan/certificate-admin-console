@@ -152,7 +152,7 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 
 | Task  | Area  | Title                                              | Depends on    | Status | PR  |
 |-------|-------|----------------------------------------------------|---------------|--------|-----|
-| M3.T1 | BE    | Tenant registry and per-tenant Prisma clients      | —             | todo   |     |
+| M3.T1 | BE    | Tenant registry and per-tenant Prisma clients      | —             | done   | local |
 | M3.T2 | BE    | Tenant middleware and `GET /api/tenants`           | M3.T1         | todo   |     |
 | M3.T3 | INFRA | Per-tenant database setup and seed                 | M3.T1         | todo   |     |
 | M3.T4 | TEST  | Tenant isolation tests                             | M3.T2, M3.T3  | todo   |     |

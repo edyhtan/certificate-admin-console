@@ -17,9 +17,13 @@ const envSchema = z.object({
     .string({ error: 'is required' })
     .startsWith('mysql://', { error: 'must be a mysql:// URL' }),
   DATABASE_URL_BASE: z
+    .string({ error: 'is required' })
+    .startsWith('mysql://', { error: 'must be a mysql:// URL' }),
+  /** Test-only: prepended to every tenant database name, so test runs use their own databases. */
+  TENANT_DATABASE_PREFIX: z
     .string()
-    .startsWith('mysql://', { error: 'must be a mysql:// URL' })
-    .optional(),
+    .regex(/^[a-z0-9_]*$/, { error: 'may only contain a-z, 0-9 and _' })
+    .default(''),
   APP_TIMEZONE: z
     .string({ error: 'is required' })
     .refine(isIanaTimeZone, {
@@ -34,20 +38,25 @@ const envSchema = z.object({
 export class AppConfig {
   readonly apiPort: number;
   readonly databaseUrl: string;
-  readonly databaseUrlBase: string | undefined;
+  /** Server URL without a database; each tenant's database name is appended (spec §3.1). */
+  readonly databaseUrlBase: string;
+  /** Prepended to tenant database names. Empty except in tests. */
+  readonly tenantDatabasePrefix: string;
   readonly timeZone: string;
   readonly serialPrefix: string;
 
   constructor(values: {
     apiPort: number;
     databaseUrl: string;
-    databaseUrlBase?: string;
+    databaseUrlBase: string;
+    tenantDatabasePrefix?: string;
     timeZone: string;
     serialPrefix: string;
   }) {
     this.apiPort = values.apiPort;
     this.databaseUrl = values.databaseUrl;
     this.databaseUrlBase = values.databaseUrlBase;
+    this.tenantDatabasePrefix = values.tenantDatabasePrefix ?? '';
     this.timeZone = values.timeZone;
     this.serialPrefix = values.serialPrefix;
     Object.freeze(this);
@@ -72,6 +81,7 @@ export function loadAppConfig(
     apiPort: e.API_PORT,
     databaseUrl: e.DATABASE_URL,
     databaseUrlBase: e.DATABASE_URL_BASE,
+    tenantDatabasePrefix: e.TENANT_DATABASE_PREFIX,
     timeZone: e.APP_TIMEZONE,
     serialPrefix: e.APP_SERIAL_PREFIX,
   });
