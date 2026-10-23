@@ -24,7 +24,8 @@
     "db:setup": "prisma migrate deploy && tsx src/seed/db-setup.ts",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "db:migrate:new": "prisma migrate dev --create-only"
+    "db:migrate:new": "prisma migrate dev --create-only",
+    "inspect": "tsx src/tools/inspect/cli.ts"
   },
   "dependencies": {
     "@cert/shared": "^0.0.1",
@@ -37,6 +38,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@inquirer/prompts": "^8.7.3",
     "@nestjs/cli": "^12.0.0",
     "@nestjs/schematics": "^12.0.0",
     "@nestjs/testing": "^12.0.1",

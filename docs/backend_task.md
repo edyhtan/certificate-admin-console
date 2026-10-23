@@ -53,6 +53,7 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 | M1.T7  | BE    | Courses and participants endpoints                 | M1.T4, M1.T5, M1.T6   | in review | #4  |
 | M1.T8  | BE    | Certificate list (paging only) and detail          | M1.T4, M1.T5, M1.T6   | in review | #4  |
 | M1.T9  | BE    | Audit writer and revoke endpoint                   | M1.T8                 | in review | #4  |
+| M1.T14 | INFRA | Tenant data inspector (dev CLI)                    | M1.T6                 | in review |     |
 
 **M1.T1 — MySQL in Docker Compose and `npm run dev`**
 - `docker-compose.yml`: MySQL 8.4, `utf8mb4` / `utf8mb4_0900_ai_ci` server defaults, UTC server timezone, healthcheck, named volume.
@@ -110,6 +111,16 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 - `POST /api/certificates/:id/revoke`: `valid` → `revoked` with `revoked_*` and a `certificate.revoked` audit event in one transaction; already revoked → `200`, no second event.
 - Done when: e2e tests prove one audit event after two revokes, and the event has actor, course, participant and serial.
 
+**M1.T14 — Tenant data inspector (dev CLI)** (D57)
+- `npm run inspect`: a read-only terminal tool to move between the tenant databases on the local MySQL server and look at their data. Not part of the product; for development and demos.
+- Finds tenants by scanning the server for `cert_xxx` databases that have the app schema (`cert_test_…` harness databases are left out), so Perth and Adelaide appear by themselves once M3 creates them. Until the M3 registry exists, names and timezones come from a small map in the tool; M3.T1 replaces it with an import of the registry.
+- Interactive mode: pick a tenant → summary, courses, course detail, participants, participant detail, certificates (search by name or serial prefix, status filter, paging), certificate detail with its audit trail, audit log; switch tenant at any point.
+- One-shot mode for scripts: `npm run inspect -- <TENANT> <view> [target] [--q] [--status] [--action] [--page] [--page-size] [--json]`, and `npm run inspect -- tenants`.
+- All dates shown in the tenant's timezone (with the zone label); the certificate detail also shows UTC.
+- Read-only by construction: each tenant connection is a Prisma client with an extension that throws on every write operation, including raw `$executeRaw`.
+- Lives in `backend_service/src/tools/inspect/`, outside `src/core`, so the core import rules don't apply and the core never imports it.
+- Done when: unit specs cover discovery, argument parsing, formatting (Perth New Year's Eve, Sydney DST, Adelaide half-hour offset) and the views; an e2e test on the harness database checks every query against the Sydney seed manifest, that writes are refused and the data is unchanged, and that the harness database is never listed as a tenant.
+
 ---
 
 ## M2 — Search, bulk issue, export and audit log
@@ -160,6 +171,7 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 **M3.T1 — Tenant registry and per-tenant Prisma clients** (spec §3.1, §5.1)
 - `backend_service/src/tenancy/tenants.ts`: `SYD` Sydney / `PER` Perth / `ADL` Adelaide with timezone and database name.
 - Prisma client manager: one `PrismaClient` per tenant (`datasourceUrl` = `DATABASE_URL_BASE` + database), small pool, connect on init, disconnect on shutdown.
+- Replace `KNOWN_TENANTS` in the inspector (`src/tools/inspect/tenants.ts`, M1.T14) with an import of the registry, so names and zones live in one place.
 - Done when: unit tests cover registry lookup; the app starts with three clients.
 
 **M3.T2 — Tenant middleware and `GET /api/tenants`**

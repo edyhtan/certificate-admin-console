@@ -22,7 +22,8 @@
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "test:all": "npm run test --workspaces --if-present && npm run test:e2e --workspaces --if-present"
+    "test:all": "npm run test --workspaces --if-present && npm run test:e2e --workspaces --if-present",
+    "inspect": "npm run -s inspect -w backend_service --"
   },
   "devDependencies": {
     "concurrently": "^9.2.5"
