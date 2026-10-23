@@ -1,0 +1,52 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxc_linter/src/rules.rs",
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-floating-promises": "warn"
+  },
+  "env": {
+    "node": true
+  },
+  "overrides": [
+    {
+      "files": ["src/core/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "node:async_hooks",
+                "message": "Core code reads its context through AppContext; async storage belongs to the tenancy module (spec §5.1, D46)."
+              },
+              {
+                "name": "async_hooks",
+                "message": "Core code reads its context through AppContext; async storage belongs to the tenancy module (spec §5.1, D46)."
+              },
+              {
+                "name": "@nestjs/common",
+                "importNames": ["Headers", "Req", "Request"],
+                "message": "Core code never reads headers or the raw request; take business inputs with @Body/@Query/@Param and the context from AppContext (spec §5.1)."
+              },
+              {
+                "name": "@nestjs/core",
+                "importNames": ["REQUEST"],
+                "message": "No request-scoped providers in core; inject AppContext (D46)."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["**/single-tenant/**", "**/single-tenant", "**/tenancy/**", "**/tenancy"],
+                "message": "Core code must not know how the context is bound; inject AppContext (spec §5.1, D46)."
+              },
+              {
+                "group": ["**/config/**", "**/config"],
+                "message": "Core code gets timezone, serial prefix and database from AppContext, not from config (D46)."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
