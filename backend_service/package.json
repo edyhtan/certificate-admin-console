@@ -18,6 +18,7 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
+    "pretest:e2e": "docker compose -f ../docker-compose.yml up -d --wait",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "db:setup": "prisma migrate deploy",
