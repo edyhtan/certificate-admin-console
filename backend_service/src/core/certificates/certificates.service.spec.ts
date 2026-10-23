@@ -41,9 +41,10 @@ function setup() {
 describe('CertificatesService.list', () => {
   it('reads one page, newest first with id as tie-breaker', async () => {
     const { service, certificate } = setup();
-    await service.list({ page: 3, pageSize: 20 });
+    await service.list({ page: 3, pageSize: 20, sort: 'issued_at', order: 'desc' });
     expect(certificate.findMany).toHaveBeenCalledWith({
       select: SUMMARY_SELECT,
+      where: {},
       orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }],
       skip: 40,
       take: 20,
@@ -51,14 +52,38 @@ describe('CertificatesService.list', () => {
   });
 
   it('reads rows and total in one transaction', async () => {
-    const { service, $transaction } = setup();
-    await service.list({ page: 1, pageSize: 20 });
+    const { service, $transaction, certificate } = setup();
+    await service.list({ page: 1, pageSize: 20, sort: 'issued_at', order: 'desc' });
     expect($transaction).toHaveBeenCalledWith(['findMany-query', 'count-query']);
+    expect(certificate.count).toHaveBeenCalledWith({ where: {} });
+  });
+
+  it('applies search, filters and sort to both the rows and the total', async () => {
+    const { service, certificate } = setup();
+    await service.list({
+      page: 1,
+      pageSize: 20,
+      q: 'ana',
+      status: 'valid',
+      courseId: 2,
+      sort: 'participant_name',
+      order: 'asc',
+    });
+    const where = {
+      OR: [{ participantName: { contains: 'ana' } }, { serial: { startsWith: 'ana' } }],
+      status: 'valid',
+      courseId: 2,
+    };
+    expect(certificate.findMany.mock.calls[0][0]).toMatchObject({
+      where,
+      orderBy: [{ participantName: 'asc' }, { id: 'asc' }],
+    });
+    expect(certificate.count).toHaveBeenCalledWith({ where });
   });
 
   it('answers in the contract shape with the tenant timezone', async () => {
     const { service } = setup();
-    await expect(service.list({ page: 1, pageSize: 5 })).resolves.toEqual({
+    await expect(service.list({ page: 1, pageSize: 5, sort: 'issued_at', order: 'desc' })).resolves.toEqual({
       items: [{ ...listRow, issuedAt: '2026-10-03T16:30:00.000Z', revokedAt: null }],
       page: 1,
       pageSize: 5,
