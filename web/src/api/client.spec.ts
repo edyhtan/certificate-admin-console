@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { z } from 'zod'
 import { apiFetch, apiRequest, buildQueryString } from './client'
 import { ApiError } from './errors'
+import { NoTenantSelectedError, setCurrentTenantCode } from './tenant'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -77,6 +78,25 @@ describe('apiFetch', () => {
     fetchMock.mockResolvedValue(jsonResponse({}))
     await apiFetch('/api/courses', { headers: { tenant_id: 'PER' } })
     expect(lastCall().headers.tenant_id).toBe('SYD')
+  })
+
+  it('sends the selected tenant', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}))
+    setCurrentTenantCode('PER')
+    await apiFetch('/api/courses')
+    expect(lastCall().headers.tenant_id).toBe('PER')
+  })
+
+  it('sends no tenant header when asked not to', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ items: [] }))
+    await apiFetch('/api/tenants', { tenant: false, headers: { tenant_id: 'PER' } })
+    expect(lastCall().headers).not.toHaveProperty('tenant_id')
+  })
+
+  it('fails before sending when no tenant is selected', async () => {
+    setCurrentTenantCode(null)
+    await expect(apiFetch('/api/courses')).rejects.toBeInstanceOf(NoTenantSelectedError)
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('returns the body unparsed without a schema', async () => {

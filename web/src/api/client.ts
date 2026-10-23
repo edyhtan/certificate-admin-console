@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 import { ApiError, errorFromResponse } from './errors'
-import { currentTenantCode, TENANT_HEADER } from './tenant'
+import { TENANT_HEADER } from '@cert/shared'
+import { currentTenantCode } from './tenant'
 
 export type QueryValue = string | number | boolean | null | undefined
 export type QueryParams = Record<string, QueryValue>
@@ -13,6 +14,8 @@ export interface ApiRequestOptions {
   query?: QueryParams
   headers?: Record<string, string>
   signal?: AbortSignal
+  /** Send the `tenant_id` header (default). Only `GET /api/tenants` and health go without. */
+  tenant?: boolean
 }
 
 export interface ApiFetchOptions<S extends z.ZodType> extends ApiRequestOptions {
@@ -39,11 +42,9 @@ export function buildQueryString(query: QueryParams = {}): string {
  * 2xx. Use it directly for non-JSON responses (NDJSON stream, CSV file). Throws `ApiError`.
  */
 export async function apiRequest(path: string, options: ApiRequestOptions = {}): Promise<Response> {
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-    ...options.headers,
-    [TENANT_HEADER]: currentTenantCode(),
-  }
+  const headers: Record<string, string> = { Accept: 'application/json', ...options.headers }
+  delete headers[TENANT_HEADER]
+  if (options.tenant !== false) headers[TENANT_HEADER] = currentTenantCode()
   const init: RequestInit = { method: options.method ?? 'GET', headers, signal: options.signal }
   if (options.body !== undefined) {
     headers['Content-Type'] = 'application/json'

@@ -1,4 +1,7 @@
 import { NavLink, Outlet } from 'react-router'
+import { TenantProvider } from '../features/tenants/TenantProvider'
+import { TenantSwitcher } from '../features/tenants/TenantSwitcher'
+import { useTenant } from '../features/tenants/context'
 
 const navItems = [
   { to: '/certificates', label: 'Certificates' },
@@ -6,9 +9,10 @@ const navItems = [
   { to: '/audit', label: 'Audit log' },
 ]
 
-export function Layout() {
+function Shell() {
+  const { tenant } = useTenant()
   return (
-    <div className="app">
+    <>
       <header className="app-header">
         <span className="app-title">Certificate Admin Console</span>
         <nav aria-label="Main">
@@ -20,11 +24,25 @@ export function Layout() {
             ))}
           </ul>
         </nav>
+        <div className="app-tenant">
+          <TenantSwitcher />
+        </div>
         <span className="app-user">admin</span>
       </header>
       <main className="app-main">
-        <Outlet />
+        {/* Keyed by tenant: switching starts every page fresh, with no state from the last one */}
+        <Outlet key={tenant.code} />
       </main>
+    </>
+  )
+}
+
+export function Layout() {
+  return (
+    <div className="app">
+      <TenantProvider>
+        <Shell />
+      </TenantProvider>
     </div>
   )
 }
