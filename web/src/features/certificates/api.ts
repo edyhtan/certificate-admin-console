@@ -82,7 +82,11 @@ export function useRevokeCertificate(id: number) {
     mutationFn: (reason?: string) => revokeCertificate(id, reason),
     onSuccess: async (certificate) => {
       queryClient.setQueryData(certificateKeys.detail(id), certificate)
-      await queryClient.invalidateQueries({ queryKey: certificateKeys.lists() })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: certificateKeys.lists() }),
+        // The revoke wrote an audit event
+        queryClient.invalidateQueries({ queryKey: ['audit', currentTenantCode()] }),
+      ])
     },
   })
 }

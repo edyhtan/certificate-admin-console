@@ -322,3 +322,188 @@ button.danger {
   margin: 0.75rem 0 0;
   color: var(--danger);
 }
+
+/* Page heading actions and toolbars */
+.page-heading {
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.page-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.button-link {
+  display: inline-block;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.toolbar select,
+.search-box {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.search-box {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+/* Sortable headers */
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+}
+
+.sort-indicator {
+  font-size: 0.75em;
+  opacity: 0.7;
+}
+
+/* Bulk issue */
+.page-intro {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+}
+
+.panel {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.preview-counts {
+  margin: 0 0 0.75rem;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.progress progress {
+  flex: 1;
+  height: 0.75rem;
+}
+
+.run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.hint,
+.outcome-counts {
+  color: var(--text-muted);
+}
+
+.badge-outcome-issued {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.badge-outcome-skipped {
+  color: var(--text-muted);
+  background: var(--neutral-bg);
+}
+
+.badge-outcome-failed {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+/* Export */
+.export {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.export button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.export .form-error {
+  margin: 0;
+}
+
+/* Audit */
+.audit-section {
+  margin-top: 2rem;
+}
+
+.audit-section h2 {
+  font-size: 1.15rem;
+  margin: 0 0 0.75rem;
+}
+
+.audit-trail {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.audit-trail li {
+  margin-bottom: 0.4rem;
+}
+
+.audit-detail {
+  color: var(--text-muted);
+}
+
+.badge-action-issued {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.badge-action-revoked {
+  color: var(--danger);
+  background: var(--danger-bg);
+}
