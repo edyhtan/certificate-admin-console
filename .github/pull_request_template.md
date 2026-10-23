@@ -19,7 +19,10 @@
 
 - [ ] Up to date with base branch (rebased)
 - [ ] Lint, type check and tests pass for every area touched
-- [ ] New behaviour has tests (or explained below why not)
+- [ ] Every added or changed service or module has unit specs in its own package (or explained below why not)
+- [ ] Unit tests run after the work was finished, and all pass
+- [ ] Local `docs/test_plan.md` updated with this task's scenarios and run result (gitignored, not part of this PR)
+- [ ] `npm run test:all` passed right before each `gh` command run on this PR
 - [ ] Ledger status and PR number updated in `docs/backend_task.md` or `docs/frontend_task.md`
 - [ ] No unrelated changes, debug code or secrets
 

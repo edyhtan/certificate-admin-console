@@ -1,0 +1,20 @@
+{
+  "name": "certificate-admin-console",
+  "private": true,
+  "description": "Multi-tenant certificate admin console",
+  "workspaces": [
+    "shared",
+    "backend_service",
+    "web"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:all": "npm run test --workspaces --if-present && npm run test:e2e --workspaces --if-present"
+  }
+}
