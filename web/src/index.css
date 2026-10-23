@@ -231,3 +231,94 @@ button.danger {
   color: var(--danger);
   background: var(--danger-bg);
 }
+
+/* Detail page */
+.page-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.page-heading h1 {
+  margin: 0;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5rem 1.5rem;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.details dt {
+  color: var(--text-muted);
+}
+
+.details dd {
+  margin: 0;
+}
+
+.timezone-note {
+  margin: 0 0 1.5rem;
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.notice {
+  margin: 1rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+/* Dialog */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(0 0 0 / 0.45);
+}
+
+.dialog {
+  width: min(28rem, 100%);
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.dialog h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+}
+
+.dialog label {
+  display: block;
+  margin: 1rem 0 0.25rem;
+  font-weight: 600;
+}
+
+.dialog textarea {
+  width: 100%;
+  font: inherit;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.form-error {
+  margin: 0.75rem 0 0;
+  color: var(--danger);
+}
