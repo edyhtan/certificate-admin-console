@@ -116,11 +116,11 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 
 | Task  | Area | Title                                               | Depends on    | Status | PR  |
 |-------|------|-----------------------------------------------------|---------------|--------|-----|
-| M2.T1 | BE   | List search, filters and sorting                    | —             | done   | local |
-| M2.T2 | BE   | Time helpers and serial generator                   | —             | done   | local |
-| M2.T3 | BE   | Bulk issue: preview and NDJSON issue endpoint       | M2.T2         | done   | local |
-| M2.T4 | BE   | CSV export                                          | M2.T1, M2.T2  | done   | local |
-| M2.T5 | BE   | Audit events endpoint                               | —             | done   | local |
+| M2.T1 | BE   | List search, filters and sorting                    | —             | in review | #8  |
+| M2.T2 | BE   | Time helpers and serial generator                   | —             | in review | #8  |
+| M2.T3 | BE   | Bulk issue: preview and NDJSON issue endpoint       | M2.T2         | in review | #8  |
+| M2.T4 | BE   | CSV export                                          | M2.T1, M2.T2  | in review | #8  |
+| M2.T5 | BE   | Audit events endpoint                               | —             | in review | #8  |
 
 **M2.T1 — List search, filters and sorting** (spec §5.3)
 - One `buildCertificateQuery(params)` returning Prisma `where` + `orderBy`; used by the list now and the export in M2.T4.
