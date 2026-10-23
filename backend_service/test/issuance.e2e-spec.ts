@@ -7,10 +7,9 @@ import {
   type IssuanceEvent,
 } from '@cert/shared';
 import type { INestApplication } from '@nestjs/common';
-import request from 'supertest';
 import { SYDNEY_SEED } from '../src/seed/manifest.js';
 import { execSql, resetToSydneySeed, TEST_ADMIN, testDb } from './support/db.js';
-import { createTestApp } from './support/test-app.js';
+import { api, createTestApp } from './support/test-app.js';
 
 const FA = SYDNEY_SEED.courseIds['FA-101'];
 const WHS = SYDNEY_SEED.courseIds['WHS-201'];
@@ -31,7 +30,7 @@ describe('Bulk issue (e2e)', () => {
   let app: INestApplication;
 
   const issue = (courseId: unknown) =>
-    request(app.getHttpServer())
+    api(app)
       .post('/api/issuances')
       .set(TENANT_HEADER, 'SYD')
       .send({ courseId })
@@ -44,7 +43,7 @@ describe('Bulk issue (e2e)', () => {
       });
 
   const preview = (courseId: unknown) =>
-    request(app.getHttpServer())
+    api(app)
       .get('/api/issuances/preview')
       .set(TENANT_HEADER, 'SYD')
       .query({ courseId });
@@ -216,14 +215,14 @@ describe('Bulk issue (e2e)', () => {
     });
 
     it('answers 404 before streaming for an unknown course', async () => {
-      const res = await request(app.getHttpServer()).post('/api/issuances').send({ courseId: 999 });
+      const res = await api(app).post('/api/issuances').send({ courseId: 999 });
       expect(res.status).toBe(404);
       expect(res.headers['content-type']).toMatch(/^application\/json/);
       expect(res.body).toEqual({ error: 'not_found', message: 'Course not found' });
     });
 
     it.each([{}, { courseId: 'x' }, { courseId: 0 }])('answers 400 for body %j', async (body) => {
-      const res = await request(app.getHttpServer()).post('/api/issuances').send(body);
+      const res = await api(app).post('/api/issuances').send(body);
       expect(res.status).toBe(400);
       expect(res.body).toMatchObject({ error: 'validation_failed', fields: { courseId: expect.any(String) } });
     });
@@ -255,7 +254,12 @@ describe('Bulk issue (e2e)', () => {
 
         await new Promise<void>((resolve, reject) => {
           const req = http.request(
-            { port, method: 'POST', path: '/api/issuances', headers: { 'Content-Type': 'application/json' } },
+            {
+              port,
+              method: 'POST',
+              path: '/api/issuances',
+              headers: { 'Content-Type': 'application/json', [TENANT_HEADER]: 'SYD' },
+            },
             (res) => {
               res.once('data', () => {
                 req.destroy(); // leave after the first line

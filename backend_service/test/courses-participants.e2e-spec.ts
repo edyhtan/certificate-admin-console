@@ -6,14 +6,13 @@ import {
   TENANT_HEADER,
 } from '@cert/shared';
 import type { INestApplication } from '@nestjs/common';
-import request from 'supertest';
 import { SYDNEY_SEED } from '../src/seed/manifest.js';
 import { resetDatabase, resetToSydneySeed, testDb } from './support/db.js';
-import { createTestApp } from './support/test-app.js';
+import { api as tenantApi, createTestApp } from './support/test-app.js';
 
 describe('Courses and participants (e2e)', () => {
   let app: INestApplication;
-  const api = () => request(app.getHttpServer());
+  const api = () => tenantApi(app);
 
   beforeAll(async () => {
     app = await createTestApp();

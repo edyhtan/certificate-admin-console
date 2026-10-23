@@ -152,10 +152,10 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 
 | Task  | Area  | Title                                              | Depends on    | Status | PR  |
 |-------|-------|----------------------------------------------------|---------------|--------|-----|
-| M3.T1 | BE    | Tenant registry and per-tenant Prisma clients      | —             | todo   |     |
-| M3.T2 | BE    | Tenant middleware and `GET /api/tenants`           | M3.T1         | todo   |     |
-| M3.T3 | INFRA | Per-tenant database setup and seed                 | M3.T1         | todo   |     |
-| M3.T4 | TEST  | Tenant isolation tests                             | M3.T2, M3.T3  | todo   |     |
+| M3.T1 | BE    | Tenant registry and per-tenant Prisma clients      | —             | in review | #10 |
+| M3.T2 | BE    | Tenant middleware and `GET /api/tenants`           | M3.T1         | in review | #10 |
+| M3.T3 | INFRA | Per-tenant database setup and seed                 | M3.T1         | in review | #10 |
+| M3.T4 | TEST  | Tenant isolation tests                             | M3.T2, M3.T3  | in review | #10 |
 
 **M3.T1 — Tenant registry and per-tenant Prisma clients** (spec §3.1, §5.1)
 - `backend_service/src/tenancy/tenants.ts`: `SYD` Sydney / `PER` Perth / `ADL` Adelaide with timezone and database name.
@@ -171,9 +171,9 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 - Done when: all existing e2e tests pass with a `tenant_id` header and **no changes to core modules**.
 
 **M3.T3 — Per-tenant database setup and seed**
-- `db:setup` loops the registry: `CREATE DATABASE IF NOT EXISTS`, `prisma migrate deploy` with that tenant's URL, seed if empty, all through `runInTenant`.
+- `db:setup` loops the registry: `CREATE DATABASE IF NOT EXISTS` (utf8mb4 / 0900_ai_ci), `prisma migrate deploy` with that tenant's URL, seed with that tenant's profile if it has no `admin` row. (Seeding writes through an explicit client, so it needs no `runInTenant`.)
 - `cert_syd` from M1 becomes the `SYD` tenant database as it is; the `SYDNEY` seed profile stays unchanged.
-- Add `PERTH` and `ADELAIDE` seed profiles with their own participant counts (10–20, not 15) and §4 edge cases: Perth 31 Dec 23:30 local; Adelaide either side of a DST change.
+- Add `PERTH` (empty: admin and 3 courses only) and `ADELAIDE` (large: 250 participants, 150 certificates, DST edge cases) seed profiles (D63).
 - Done when: `npm run dev` from `docker compose down -v` creates three seeded databases; re-running changes nothing.
 
 **M3.T4 — Tenant isolation tests**

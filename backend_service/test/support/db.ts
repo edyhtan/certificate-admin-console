@@ -1,29 +1,48 @@
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { PrismaClient } from '@prisma/client';
-import { SYDNEY_SEED } from '../../src/seed/manifest.js';
-import { SYDNEY } from '../../src/seed/profiles/sydney.js';
+import { SEED_PROFILES } from '../../src/seed/profiles/index.js';
 import { seed, type SeedResult } from '../../src/seed/seed.js';
+import {
+  tenantDatabaseName,
+  tenantDatabaseUrl,
+  type TenantCode,
+} from '../../src/tenancy/tenants.js';
 
-let client: PrismaClient | undefined;
+const clients = new Map<TenantCode, PrismaClient>();
 
-/** The harness's own client on this run's throwaway database, for factories and assertions. */
-export function testDb(): PrismaClient {
-  client ??= new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
+/** This run's throwaway database for a tenant (`SYD` by default). */
+export function testDatabaseName(code: TenantCode = 'SYD'): string {
+  return tenantDatabaseName(code, process.env.TENANT_DATABASE_PREFIX ?? '');
+}
+
+/**
+ * The harness's own client on a tenant's throwaway database (`SYD` by default), for factories
+ * and assertions.
+ */
+export function testDb(code: TenantCode = 'SYD'): PrismaClient {
+  let client = clients.get(code);
+  if (!client) {
+    client = new PrismaClient({
+      datasourceUrl: tenantDatabaseUrl(process.env.DATABASE_URL_BASE ?? '', testDatabaseName(code)),
+    });
+    clients.set(code, client);
+  }
   return client;
 }
 
 export async function closeTestDb(): Promise<void> {
-  await client?.$disconnect();
-  client = undefined;
+  await Promise.all([...clients.values()].map((c) => c.$disconnect()));
+  clients.clear();
 }
 
 /**
  * Runs a plain SQL script on the test database through `prisma db execute`, for statements
  * MySQL can't prepare (CREATE/DROP TRIGGER, error 1295), which Prisma's raw queries always do.
  */
-export function execSql(sql: string): void {
-  execFileSync('npx', ['prisma', 'db', 'execute', '--stdin', '--url', process.env.DATABASE_URL ?? ''], {
+export function execSql(sql: string, code: TenantCode = 'SYD'): void {
+  const url = tenantDatabaseUrl(process.env.DATABASE_URL_BASE ?? '', testDatabaseName(code));
+  execFileSync('npx', ['prisma', 'db', 'execute', '--stdin', '--url', url], {
     cwd: fileURLToPath(new URL('../..', import.meta.url)),
     input: sql,
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -62,16 +81,20 @@ export async function resetDatabase(db: PrismaClient = testDb()): Promise<void> 
 }
 
 /**
- * The default starting state for M1-M2 API tests: an empty database loaded with the Sydney
- * seed (D48). Ids match `SYDNEY_SEED`. Factories can add rows on top.
+ * Empties a tenant's test database and loads that tenant's seed (D63): Sydney's small set,
+ * Perth's empty one (admin and courses), or Adelaide's large one. Ids match the tenant's manifest.
  */
-export async function resetToSydneySeed(
-  db: PrismaClient = testDb(),
-): Promise<SeedResult> {
+export async function resetToSeed(code: TenantCode): Promise<SeedResult> {
+  const db = testDb(code);
   await truncateAll(db);
-  const result = await seed(db, SYDNEY);
-  if (result.adminId !== TEST_ADMIN.id || SYDNEY_SEED.admin.name !== TEST_ADMIN.name) {
-    throw new Error('Sydney seed admin no longer matches TEST_ADMIN');
+  const result = await seed(db, SEED_PROFILES[code]);
+  if (result.adminId !== TEST_ADMIN.id || SEED_PROFILES[code].admin.name !== TEST_ADMIN.name) {
+    throw new Error(`${code} seed admin no longer matches TEST_ADMIN`);
   }
   return result;
+}
+
+/** The default starting state for API tests: Sydney's seed (D48). */
+export function resetToSydneySeed(): Promise<SeedResult> {
+  return resetToSeed('SYD');
 }

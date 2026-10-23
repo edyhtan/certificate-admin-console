@@ -1,10 +1,9 @@
 import { certificateListResponseSchema, TENANT_HEADER } from '@cert/shared';
 import type { INestApplication } from '@nestjs/common';
-import request from 'supertest';
 import { SYDNEY_SEED } from '../src/seed/manifest.js';
 import { resetToSydneySeed } from './support/db.js';
 import { createCertificate, createCourse, createEnrollment, createParticipant } from './support/factories.js';
-import { createTestApp } from './support/test-app.js';
+import { api, createTestApp } from './support/test-app.js';
 
 const C = SYDNEY_SEED.certificates;
 type Row = { id: number; serial: string; participantName: string; courseTitle: string; issuedAt: string };
@@ -12,7 +11,7 @@ type Row = { id: number; serial: string; participantName: string; courseTitle: s
 describe('Certificate search, filters and sort (e2e)', () => {
   let app: INestApplication;
   const list = async (query: Record<string, string | number>) => {
-    const res = await request(app.getHttpServer())
+    const res = await api(app)
       .get('/api/certificates')
       .set(TENANT_HEADER, 'SYD')
       .query({ pageSize: 100, ...query });

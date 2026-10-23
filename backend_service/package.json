@@ -21,9 +21,8 @@
     "pretest:e2e": "docker compose -f ../docker-compose.yml up -d --wait",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "db:setup": "prisma migrate deploy && tsx src/seed/db-setup.ts",
+    "db:setup": "tsx src/seed/db-setup.ts",
     "postinstall": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
     "db:migrate:new": "prisma migrate dev --create-only"
   },
   "dependencies": {
