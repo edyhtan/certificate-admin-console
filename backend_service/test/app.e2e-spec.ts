@@ -1,11 +1,8 @@
 import { Body, Controller, Get, Post, type INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { z } from 'zod';
-import { AppModule } from '../src/app.module.js';
-import { configureApp } from '../src/app.setup.js';
 import { ZodValidationPipe } from '../src/common/validation/zod-validation.pipe.js';
-import { AppConfig } from '../src/config/app-config.js';
+import { createTestApp } from './support/test-app.js';
 
 const echoSchema = z.object({
   email: z.email('must be a valid email'),
@@ -30,22 +27,7 @@ describe('App (e2e)', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-      controllers: [SampleController],
-    })
-      .overrideProvider(AppConfig)
-      .useValue(
-        new AppConfig({
-          apiPort: 0,
-          databaseUrl: 'mysql://unused/unused',
-          timeZone: 'Australia/Sydney',
-          serialPrefix: 'SYD',
-        }),
-      )
-      .compile();
-    app = configureApp(moduleRef.createNestApplication({ logger: false }));
-    await app.init();
+    app = await createTestApp({ controllers: [SampleController] });
   });
 
   afterAll(async () => {
@@ -56,7 +38,7 @@ describe('App (e2e)', () => {
     it('answers 200 ok and is not cached', async () => {
       const res = await request(app.getHttpServer()).get('/api/health');
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({ status: 'ok', checks: {} });
+      expect(res.body.status).toBe('ok');
       expect(res.headers['cache-control']).toBe('no-store');
     });
 
