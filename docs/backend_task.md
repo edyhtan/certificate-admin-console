@@ -12,7 +12,7 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 | Task  | Area  | Title                                   | Depends on   | Status      | PR  |
 |-------|-------|-----------------------------------------|--------------|-------------|-----|
 | M0.T1 | INFRA | Repo bootstrap and workspace scaffold   | —            | todo        |     |
-| M0.T2 | BE    | API contract for all endpoints          | M0.T1        | todo        |     |
+| M0.T2 | BE    | API contract for all endpoints          | M0.T1        | done        | main (direct) |
 | M0.T3 | DOCS  | Milestone and task breakdown            | —            | in progress |     |
 
 **M0.T1 — Repo bootstrap and workspace scaffold**
