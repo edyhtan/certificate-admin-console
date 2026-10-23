@@ -104,8 +104,29 @@ button.danger {
   font-weight: 600;
 }
 
-.app-user {
+.app-tenant {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
   margin-left: auto;
+}
+
+.tenant-zone {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.tenant-switcher select {
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app-user {
   color: var(--text-muted);
 }
 
