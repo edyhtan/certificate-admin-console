@@ -124,10 +124,7 @@ describe('AppContext tenant binding (e2e)', () => {
             new AppConfig({
               apiPort: 0,
               // Nothing listens on port 1, so connections are refused at once.
-              databaseUrl: 'mysql://root:root@127.0.0.1:1/cert_unreachable',
               databaseUrlBase: 'mysql://root:root@127.0.0.1:1',
-              timeZone: 'Australia/Sydney',
-              serialPrefix: 'SYD',
             }),
           ),
       });

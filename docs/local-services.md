@@ -45,9 +45,12 @@ Stop: `Ctrl+C` in the terminal that runs it. `npm run db:down` stops MySQL (the 
 ## Data
 
 - Every request except `GET /api/health` and `GET /api/tenants` needs `tenant_id: SYD`, `PER` or `ADL` (exact, upper case); anything else is `400 unknown_tenant`. Each code has its own database (`cert_syd`, `cert_per`, `cert_adl`).
-- `db:setup` seeds `cert_syd` once with the Sydney seed: 3 courses, 15 participants, 6 certificates (one revoked), audit events. Running it again changes nothing.
+- `db:setup` creates, migrates and seeds each tenant database once (D61). Running it again changes nothing.
+  - `SYD` Sydney (`cert_syd`): 3 courses, 15 participants, 6 certificates (one revoked).
+  - `PER` Perth (`cert_per`): 3 courses and nothing else, for empty states.
+  - `ADL` Adelaide (`cert_adl`): 3 courses, 250 participants, 150 certificates (one revoked), about 8 list pages.
 - Start over with fresh seed data: `docker compose down -v && npm run db:setup` (deletes the MySQL volume, including anything you created).
-- API tests never touch `cert_syd`: each run creates and drops its own `cert_test_…` database.
+- API tests never touch these: each run creates and drops its own `cert_test_…` database per tenant.
 
 ## Quick checks
 

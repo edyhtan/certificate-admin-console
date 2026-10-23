@@ -5,11 +5,8 @@ import { TenantClients } from './tenant-clients.js';
 
 const config = new AppConfig({
   apiPort: 3000,
-  databaseUrl: 'mysql://root:root@127.0.0.1:3307/cert_syd',
   databaseUrlBase: 'mysql://root:root@127.0.0.1:3307',
   tenantDatabasePrefix: 'cert_test_x_1_',
-  timeZone: 'Australia/Sydney',
-  serialPrefix: 'SYD',
 });
 
 function fakeFactory(connect: (url: string) => Promise<void> = async () => undefined) {
