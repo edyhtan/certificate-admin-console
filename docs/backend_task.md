@@ -45,7 +45,7 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 | Task   | Area  | Title                                              | Depends on            | Status | PR  |
 |--------|-------|----------------------------------------------------|-----------------------|--------|-----|
 | M1.T1  | INFRA | MySQL in Docker Compose and `npm run dev`          | —                     | done   | local |
-| M1.T2  | BE    | NestJS app skeleton, validation and error format   | —                     | todo   |     |
+| M1.T2  | BE    | NestJS app skeleton, validation and error format   | —                     | done   | local |
 | M1.T3  | BE    | Prisma schema and initial migration                | M1.T1, M1.T2          | todo   |     |
 | M1.T4  | BE    | API test harness (Vitest + Supertest + test database) | M1.T3                | todo   |     |
 | M1.T5  | BE    | `AppContext` port and single-tenant binding        | M1.T3                 | todo   |     |
