@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderRoute } from '../test/render'
+import { mockFetch, never } from '../test/fetchMock'
+
+// These tests are about routing only, so API calls never answer.
+beforeEach(() => {
+  mockFetch(() => never())
+})
 
 describe('app routes', () => {
   it('redirects / to /certificates', async () => {

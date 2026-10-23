@@ -14,7 +14,7 @@ Frontend tasks for the Certificate Admin Console. Backend, infrastructure, test 
 |--------|-------|----------------------------------------------------|-----------------------|--------|-----|
 | M1.T10 | FE    | Web app skeleton: Vite, router, query client, proxy | —                    | in progress |     |
 | M1.T11 | FE    | API client, date formatting and shared UI states   | M1.T10                | in progress |     |
-| M1.T12 | FE    | Certificate list page (paging only)                | M1.T11, M1.T8         | todo   |     |
+| M1.T12 | FE    | Certificate list page (paging only)                | M1.T11, M1.T8         | in progress |     |
 | M1.T13 | FE    | Certificate detail page and revoke dialog          | M1.T11, M1.T9         | todo   |     |
 
 **M1.T10 — Web app skeleton**
