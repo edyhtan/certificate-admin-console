@@ -17,13 +17,13 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 
 **M0.T1 — Repo bootstrap and workspace scaffold**
 - `git init`, first commit straight to `main` (allowed for bootstrap, AGENTS.md §2): `AGENTS.md`, `CLAUDE.md`, PR template, `docs/`, `.gitignore`, `.editorconfig`.
-- npm workspaces: `apps/api`, `apps/web`, `packages/shared` (empty packages that build).
-- Shared `tsconfig.base.json` (strict), ESLint + Prettier at the root; `npm run lint`, `npm run typecheck` work across workspaces.
-- `.env.example` with `DATABASE_URL`, `DATABASE_URL_BASE`, `APP_TIMEZONE`, `APP_SERIAL_PREFIX`, `API_PORT`.
+- npm workspaces: `backend_service` (Nest CLI scaffold) and `web` (Vite `react-ts` scaffold). `shared` is added in M0.T2.
+- Each project keeps its scaffold's strict tsconfig and oxlint; root `npm run build`, `lint`, `typecheck`, `test` run across workspaces.
+- `.env.example` with `DATABASE_URL`, `DATABASE_URL_BASE`, `APP_TIMEZONE`, `APP_SERIAL_PREFIX`, `API_PORT`. The single-tenant values default to Sydney (D48): `DATABASE_URL=…/cert_syd`, `APP_TIMEZONE=Australia/Sydney`, `APP_SERIAL_PREFIX=SYD`.
 - Done when: `npm install && npm run lint && npm run typecheck` passes on a clean clone.
 
 **M0.T2 — API contract for all endpoints**
-- `packages/shared/src/contract/`: zod schemas and inferred types for every request and response in spec §5:
+- `shared/src/contract/` (new `shared` workspace): zod schemas and inferred types for every request and response in spec §5:
   - `GET /api/tenants`
   - `GET/POST /api/courses`, `POST /api/participants`
   - `GET /api/certificates` (query: `q`, `status`, `courseId`, `sort`, `order`, `page`, `pageSize`), `GET /api/certificates/:id`, `POST /api/certificates/:id/revoke`
@@ -47,10 +47,10 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 | M1.T1  | INFRA | MySQL in Docker Compose and `npm run dev`          | —                     | todo   |     |
 | M1.T2  | BE    | NestJS app skeleton, validation and error format   | —                     | todo   |     |
 | M1.T3  | BE    | Prisma schema and initial migration                | M1.T1, M1.T2          | todo   |     |
-| M1.T4  | BE    | API test harness (Jest + Supertest + test database) | M1.T3                | todo   |     |
-| M1.T5  | BE    | RequestContext and single-tenant context provider  | M1.T3                 | todo   |     |
-| M1.T6  | BE    | Seed script and `db:setup`                         | M1.T3                 | todo   |     |
-| M1.T7  | BE    | Courses and participants endpoints                 | M1.T4, M1.T5          | todo   |     |
+| M1.T4  | BE    | API test harness (Vitest + Supertest + test database) | M1.T3                | todo   |     |
+| M1.T5  | BE    | `AppContext` port and single-tenant binding        | M1.T3                 | todo   |     |
+| M1.T6  | BE    | Sydney seed, test baseline and `db:setup`          | M1.T3, M1.T4          | todo   |     |
+| M1.T7  | BE    | Courses and participants endpoints                 | M1.T4, M1.T5, M1.T6   | todo   |     |
 | M1.T8  | BE    | Certificate list (paging only) and detail          | M1.T4, M1.T5, M1.T6   | todo   |     |
 | M1.T9  | BE    | Audit writer and revoke endpoint                   | M1.T8                 | todo   |     |
 
@@ -60,8 +60,8 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 - Done when: `npm run dev` on a clean clone brings MySQL up healthy and starts both app processes.
 
 **M1.T2 — NestJS app skeleton, validation and error format**
-- NestJS app in `apps/api`, global `/api` prefix, `GET /api/health`.
-- Config module reading `.env` (single-tenant values for M1–M2: `DATABASE_URL`, `APP_TIMEZONE`, `APP_SERIAL_PREFIX`).
+- NestJS app in `backend_service`, global `/api` prefix, `GET /api/health`.
+- Config module reading `.env` (single-tenant values for M1–M2: `DATABASE_URL`, `APP_TIMEZONE`, `APP_SERIAL_PREFIX`; Sydney, D48).
 - `ZodValidationPipe` using the shared contract schemas.
 - Global exception filter producing the contract error shape; maps Prisma `P2002` → `409` and `P2025` / not-found → `404`.
 - Done when: health endpoint responds; a bad request to a sample route returns the contract error shape.
@@ -73,22 +73,27 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 - Done when: `prisma migrate deploy` on an empty database succeeds; a raw `UPDATE audit_event …` fails.
 
 **M1.T4 — API test harness**
-- Jest + Supertest wired to Nest's testing module.
+- Vitest + Supertest wired to Nest's testing module (scaffold default).
 - Each test run uses its own throwaway database on the compose MySQL (create → migrate → drop), and a helper to reset tables between suites.
 - Factories for course, participant, enrollment, certificate.
-- Done when: `npm test -w apps/api` runs a sample e2e test green on a clean machine with only Docker running.
+- Done when: `npm run test:e2e -w backend_service` runs a sample e2e test green on a clean machine with only Docker running.
 
-**M1.T5 — RequestContext and single-tenant context provider** (spec §5.1)
-- `RequestContext` type (db, timeZone, serialPrefix, actor, now) and a `@Ctx()` param decorator.
-- Single-tenant provider: one `PrismaClient` from `DATABASE_URL`, timezone and prefix from env, actor = the `admin` row.
-- ESLint `no-restricted-imports` rule: core modules may not import the context provider or (later) the tenancy module.
-- Done when: a sample controller receives a populated context; the lint rule fails on a deliberate bad import.
+**M1.T5 — `AppContext` port and single-tenant binding** (spec §5.1, D46)
+- `AppContext` abstract class in `backend_service/src/core/context/` (db, timeZone, serialPrefix, actor, now). Core services inject it and read it when called. No `@Ctx()` decorator and no context argument on any method.
+- Single-tenant binding of `AppContext`: one `PrismaClient` from `DATABASE_URL`, timezone and prefix from env, actor = the `admin` row (loaded on module init).
+- Test helper that binds `AppContext` to a fixed object over the test database.
+- oxlint `no-restricted-imports` rule: core modules may not import the single-tenant binding, `node:async_hooks` or (later) the tenancy module.
+- Done when: a sample core service reads a populated context with no context parameter; the lint rule fails on a deliberate bad import.
 
-**M1.T6 — Seed script and `db:setup`** (spec §7 seed)
-- `seed(db, { timeZone, participantCount, … })` as a reusable function, so M3 can call it once per tenant.
-- One run creates: admin `admin`; 3 courses; 10–20 participants with apostrophes and accents in some names; enrollments (mix of `enrolled` and `completed`, every course has eligible learners); a few certificates with matching audit events, one revoked.
-- `npm run db:setup`: migrate deploy, then seed only if `admin` is empty. Safe to run repeatedly.
-- Done when: running `db:setup` twice leaves the same data; `npm run dev` lands on a seeded database.
+**M1.T6 — Sydney seed, test baseline and `db:setup`** (spec §7 seed, D48)
+- `seed(db, profile)` as a reusable function taking a tenant seed profile (`timeZone`, `serialPrefix`, `participantCount`, edge-case issue times). M1 ships one profile, **`SYDNEY`** (`Australia/Sydney`, `SYD`); M3 adds Perth and Adelaide profiles next to it.
+- The Sydney seed creates: admin `admin`; 3 courses; 15 participants with apostrophes and accents in some names (`O'Neil`, `Nguyễn`); enrollments (mix of `enrolled` and `completed`, every course has eligible learners); a few certificates `SYD-2026-000001…` with matching `certificate.issued` audit events, one revoked with its `certificate.revoked` event.
+- Sydney edge cases (spec §4): one certificate each side of the DST end on 5 Apr 2026 (03:00 AEDT +11 → 02:00 AEST +10) and of the DST start on 4 Oct 2026; one at 00:30 local on 1 Jan 2026 (13:30 UTC on 31 Dec 2025), whose local date and serial year are 2026, not the UTC 2025.
+- `serial_counter` for 2026 is set to the highest seeded sequence, so the M2 serial generator carries on from there.
+- Fixed values: deterministic data (no random names or `now()`), exported as a `SYDNEY_SEED` manifest (counts, known names, serials, ids of the revoked and edge-case certificates) for tests to assert against.
+- Test baseline: helper `resetToSydneySeed()` that clears the test database and loads the Sydney seed. It is the default starting state for M1–M2 API e2e tests; factories (M1.T4) add rows on top for specific cases.
+- `npm run db:setup`: migrate deploy on `cert_syd`, then seed only if `admin` is empty. Safe to run repeatedly.
+- Done when: running `db:setup` twice leaves the same data; `npm run dev` lands on the seeded Sydney database; a sample e2e test on `resetToSydneySeed()` sees the `SYDNEY_SEED` counts and the three edge-case certificates with the expected UTC instants.
 
 **M1.T7 — Courses and participants endpoints** (spec §5.6)
 - `GET /api/courses`, `POST /api/courses`, `POST /api/participants` per contract.
@@ -153,23 +158,28 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 | M3.T4 | TEST  | Tenant isolation tests                             | M3.T2, M3.T3  | todo   |     |
 
 **M3.T1 — Tenant registry and per-tenant Prisma clients** (spec §3.1, §5.1)
-- `apps/api/src/tenancy/tenants.ts`: `SYD` Sydney / `PER` Perth / `ADL` Adelaide with timezone and database name.
+- `backend_service/src/tenancy/tenants.ts`: `SYD` Sydney / `PER` Perth / `ADL` Adelaide with timezone and database name.
 - Prisma client manager: one `PrismaClient` per tenant (`datasourceUrl` = `DATABASE_URL_BASE` + database), small pool, connect on init, disconnect on shutdown.
 - Done when: unit tests cover registry lookup; the app starts with three clients.
 
 **M3.T2 — Tenant middleware and `GET /api/tenants`**
-- Middleware: `tenant_id` header → registry → that tenant's client, timezone, prefix and `admin` actor → `RequestContext`. Missing/unknown → `400 unknown_tenant`. Replaces the single-tenant provider; remove it.
+- Tenant scope store: one `AsyncLocalStorage<TenantScope>` (frozen `{ code, db, timeZone, actor }`).
+- `TenantAppContext`: binding for `AppContext` whose getters read the current scope; no scope → throw. Rebind `AppContext` to it and remove the single-tenant binding.
+- Middleware: `tenant_id` header → registry → that tenant's client, timezone, prefix and `admin` actor → `store.run(scope, next)`, so the whole request (including streamed responses) runs in that scope. Missing/unknown → `400 unknown_tenant`.
+- `runInTenant(code, fn)` for work outside a request (setup, seed, scripts, tests).
 - `GET /api/tenants` returns code, name, timezone only.
 - Done when: all existing e2e tests pass with a `tenant_id` header and **no changes to core modules**.
 
 **M3.T3 — Per-tenant database setup and seed**
-- `db:setup` loops the registry: `CREATE DATABASE IF NOT EXISTS`, `prisma migrate deploy` with that tenant's URL, seed if empty.
-- Seed per tenant with different participant counts (10–20) and the §4 edge cases: Perth 31 Dec 23:30 local, Sydney and Adelaide either side of a DST change.
+- `db:setup` loops the registry: `CREATE DATABASE IF NOT EXISTS`, `prisma migrate deploy` with that tenant's URL, seed if empty, all through `runInTenant`.
+- `cert_syd` from M1 becomes the `SYD` tenant database as it is; the `SYDNEY` seed profile stays unchanged.
+- Add `PERTH` and `ADELAIDE` seed profiles with their own participant counts (10–20, not 15) and §4 edge cases: Perth 31 Dec 23:30 local; Adelaide either side of a DST change.
 - Done when: `npm run dev` from `docker compose down -v` creates three seeded databases; re-running changes nothing.
 
 **M3.T4 — Tenant isolation tests**
 - With `tenant_id: SYD`: Perth certificate id → `404`; revoke Perth id → `404`; list and export contain no `PER-` serials; bulk issue for a Perth course id → `404`.
 - No header or `XYZ` → `400`.
+- Ambient scope: Sydney and Perth bulk issue runs started at the same time each stream only their own serials; a CSV export of many batches keeps its tenant to the last row; a core service called outside any scope throws.
 - Done when: all pass in CI-style run.
 
 ---

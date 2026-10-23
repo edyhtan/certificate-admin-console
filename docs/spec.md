@@ -35,7 +35,7 @@ Technical constraints (brief §4–§5):
 A tenant is **not** a database table. Tenants are listed in source code, keyed by a **short tenant code**, and each code maps to its own MySQL database on the same server.
 
 ```ts
-// apps/api/src/tenancy/tenants.ts  (server only: it holds database names)
+// backend_service/src/tenancy/tenants.ts  (server only: it holds database names)
 export const TENANTS = {
   SYD: { name: "Sydney",   timezone: "Australia/Sydney",   database: "cert_syd" },
   PER: { name: "Perth",    timezone: "Australia/Perth",    database: "cert_per" },
@@ -125,7 +125,7 @@ Isolation is physical: each tenant's data is in its own database (§3.1), so a r
 **Multitenancy stays out of the core.** The business modules (certificates, issuance, audit, export, courses, participants) never see a tenant. They are written as if there were one organisation with one database, and they never receive a context argument either. The context is **ambient**: it travels with the request's async call chain (Node `AsyncLocalStorage`), and the core reads it through one injected port that the core owns:
 
 ```ts
-// apps/api/src/core/context/app-context.ts: owned by the core, no notion of "tenant"
+// backend_service/src/core/context/app-context.ts: owned by the core, no notion of "tenant"
 export abstract class AppContext {
   abstract get db(): PrismaClient;       // the client to work with
   abstract get timeZone(): string;       // IANA zone for dates and the serial year
@@ -248,7 +248,7 @@ Plain create and list endpoints so demo data isn't limited to the seed. Same `te
 | POST | `/api/courses` | `{ code, title }` | `201` with the course |
 | POST | `/api/participants` | `{ firstName, lastName, email }` | `201` with the participant |
 
-Validation (zod schemas in `packages/shared`, checked on both sides; a small `ZodValidationPipe` on the API):
+Validation (zod schemas in `shared`, checked on both sides; a small `ZodValidationPipe` on the API):
 - `code`: trimmed, upper-cased, 2–20 of `A–Z 0–9 -`; `title`: 1–200 chars after trimming.
 - `firstName`, `lastName`: 1–100 chars after trimming; accents and apostrophes allowed.
 - `email`: valid format, trimmed and lower-cased before saving, so `Ana@X.com` and `ana@x.com` are the same person.
@@ -287,9 +287,10 @@ Validation (zod schemas in `packages/shared`, checked on both sides; a small `Zo
 | ORM | Prisma (one schema, one migration history, applied to every tenant database) |
 | Database | MySQL 8.4 in Docker Compose; one database per tenant (§3.1) |
 | Frontend | React + Vite + TanStack Query + React Router |
-| Shared | `packages/shared`: zod schemas and API types, used by both sides (no tenant registry; that is server-only) |
-| Tests | API: Jest + Supertest (Nest defaults) against throwaway test databases on the same MySQL. Web: Vitest + Testing Library |
-| Repo | npm workspaces: `apps/api`, `apps/web`, `packages/shared` |
+| Shared | `shared` workspace (added in M0.T2): zod schemas and API types, used by both sides (no tenant registry; that is server-only) |
+| Tests | API: Vitest + Supertest (Nest 12 defaults) against throwaway test databases on the same MySQL. Web: Vitest + Testing Library |
+| Lint | oxlint in both projects (Nest 12 and Vite defaults); `no-restricted-imports` guards the core's imports |
+| Repo | npm workspaces: `backend_service` (NestJS), `web` (React), `shared` (contract, added in M0.T2) |
 | Start | `npm install && npm run dev` (Docker must be running): starts MySQL with `docker compose up -d --wait`, runs setup, then starts API and web together |
 
 **Setup script** (`npm run db:setup`, also run by `dev`): for each registry tenant, `CREATE DATABASE IF NOT EXISTS`, then `prisma migrate deploy` with that tenant's URL, then seed if its `admin` table is empty. Safe to run any number of times.
@@ -300,13 +301,13 @@ Backend components:
 
 Frontend components: app shell and tenant switcher, API client (adds the tenant header; reads NDJSON and CSV responses), tenant date formatting, certificate list, certificate detail and revoke dialog, bulk issue page, shared table/pagination/state components.
 
-**Seed (per tenant database):**
+**Seed (per tenant database):** each tenant has a deterministic seed profile. M1–M2 seed only Sydney, and that seed is also the baseline for API tests (D48); M3 adds Perth and Adelaide.
 - 1 admin: `admin`.
 - 3 courses.
 - 10–20 participants (a different count per tenant), including names with apostrophes and accents (`O'Neil`, `Nguyễn`).
 - Enrollments: most participants in 1–3 courses; a mix of `enrolled` and `completed`, so every course has learners eligible for bulk issue.
 - A few certificates already issued (with matching audit events), one of them revoked, so the list, detail and "skipped" paths have something to show.
-- Issue times chosen to exercise §4: one at 23:30 local on 31 Dec in Perth, one each side of a daylight-saving change in Sydney and Adelaide.
+- Issue times chosen to exercise §4: one at 23:30 local on 31 Dec in Perth; one each side of a daylight-saving change in Sydney and Adelaide; in Sydney also one at 00:30 local on 1 Jan 2026 (still 31 Dec 2025 in UTC), so the local year and date differ from UTC.
 
 ## 8. Out of scope
 
@@ -364,6 +365,9 @@ Frontend components: app shell and tenant switcher, API client (adds the tenant 
 | D40 | Text search relies on MySQL collation `utf8mb4_0900_ai_ci` (case- and accent-insensitive) | Prisma's `mode: "insensitive"` isn't available on MySQL; the collation gives the same result and more | — |
 | D41 | `GET /api/issuances/preview?courseId=` returns completed / already issued / eligible counts | Bulk issue page shows the count before the run (§6) | — |
 | D42 | `GET /api/audit-events` (filter by certificate, course, action; paginated) plus an `/audit` page; certificate detail reads its trail from it | M2 plan: FE fetches audit logs for issuances | Audit events embedded in the detail response |
-| D43 | M1–M2 run single-tenant: `AppContext` is bound to a fixed provider (one database, timezone and prefix from env). M3 rebinds it to the tenancy module's `TenantAppContext` without changing core modules (wording updated for D46) | User milestone order puts multi-tenancy in M3; D25 makes the swap possible | — |
+| D43 | M1–M2 run single-tenant: `AppContext` is bound to a fixed provider (one database, timezone and prefix from env; Sydney per D48). M3 rebinds it to the tenancy module's `TenantAppContext` without changing core modules (wording updated for D46) | User milestone order puts multi-tenancy in M3; D25 makes the swap possible | — |
 | D44 | Pin Prisma 6.x (per-client `datasourceUrl`) | Prisma 7 needs a driver adapter per client; 6 keeps the per-tenant clients simple | — |
 | D45 | Tasks split into `docs/backend_task.md` (BE, INFRA, TEST, DOCS) and `docs/frontend_task.md` (FE); `docs/milestones.md` is the overview. Task IDs are unique across both | User request | Single ledger in `docs/milestones.md` |
+| D46 | Tenant context is **ambient**. The tenant middleware runs each request inside a Node `AsyncLocalStorage` scope. Core services inject a core-owned `AppContext` port whose getters read that scope when called. No context argument and no `@Ctx()` decorator. No scope → throw (fail closed). Built on plain `node:async_hooks`, not `nestjs-cls` | User: separate tenant logic completely from business code, so method signatures carry business inputs only. Plain `AsyncLocalStorage` is a few dozen lines with one store. Nest request-scoped providers were rejected: they rebuild every dependent service on each request and spread request scope up the dependency graph | D25 mechanism (explicit `RequestContext` argument) |
+| D47 | Projects live at the repo root as npm workspaces: `backend_service` (NestJS 12 CLI scaffold) and `web` (Vite `react-ts` scaffold); the contract goes in a `shared` workspace in M0.T2. Keep the scaffolds' tooling: Vitest for API tests, oxlint for lint (it supports `no-restricted-imports`) | User request for these project names; Nest 12 now ships Vitest + oxlint | `apps/api`, `apps/web`, `packages/shared`; Jest; ESLint |
+| D48 | M1–M2's single tenant is **Sydney**: database `cert_syd`, `Australia/Sydney`, prefix `SYD`. Its deterministic seed (`SYDNEY` profile, `SYDNEY_SEED` manifest, `resetToSydneySeed()`) is both the dev data and the default baseline for M1–M2 API tests. In M3, `cert_syd` becomes the `SYD` tenant as it is, and Perth and Adelaide profiles are added beside it | User: seed in M1, with Sydney as the primary test seed. Sydney has daylight saving, so DST and local-year edge cases are tested from M1, and M3 needs no data migration | Generic env-driven single-tenant seed |
