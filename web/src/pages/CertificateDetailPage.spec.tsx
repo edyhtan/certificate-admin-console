@@ -3,7 +3,7 @@ import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { CertificateDetail } from '@cert/shared'
 import { certificateKeys } from '../features/certificates/api'
-import { certificateDetail, certificatePage, certificateSummary } from '../test/fixtures'
+import { auditEvent, auditPage, certificateDetail, certificatePage, certificateSummary } from '../test/fixtures'
 import { json, mockFetch, never, type MockRequest } from '../test/fetchMock'
 import { createTestQueryClient, renderRoute } from '../test/render'
 
@@ -34,6 +34,7 @@ function fakeApi(initial: CertificateDetail, onRevoke?: (req: MockRequest) => Re
       return json(current)
     }
     if (req.url.pathname === '/api/certificates') return json(certificatePage([certificateSummary()]))
+    if (req.url.pathname === '/api/audit-events') return json(auditPage([auditEvent()]))
     return json({ error: 'not_found', message: 'Not found' }, 404)
   })
 }
@@ -127,6 +128,7 @@ describe('CertificateDetailPage', () => {
         })
       }
       if (req.url.pathname === '/api/certificates') return json(certificatePage([certificateSummary()]))
+      if (req.url.pathname === '/api/audit-events') return json(auditPage([auditEvent()]))
       return json(current)
     })
     const queryClient = createTestQueryClient()
@@ -244,6 +246,7 @@ describe('CertificateDetailPage', () => {
         if (req.url.pathname === '/api/certificates/1') return json(certificateDetail())
         if (req.url.pathname === '/api/certificates/2') return json(second)
         if (req.url.pathname === '/api/certificates') return json(certificatePage([certificateSummary()]))
+        if (req.url.pathname === '/api/audit-events') return json(auditPage([]))
         return json({ error: 'not_found', message: 'Not found' }, 404)
       })
       const queryClient = createTestQueryClient()
@@ -279,5 +282,40 @@ describe('CertificateDetailPage', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       expect(requests.filter((r) => r.method === 'POST')).toHaveLength(0)
     })
+  })
+
+  it('shows the audit trail and reloads it after a revoke (M2.T9)', async () => {
+    let current = certificateDetail()
+    const revokeEvent = auditEvent({
+      id: 2,
+      action: 'certificate.revoked',
+      occurredAt: '2026-06-01T00:00:00.000Z',
+      details: { reason: 'Typo' },
+    })
+    const { requests } = mockFetch((req) => {
+      if (req.url.pathname === '/api/audit-events') {
+        return json(auditPage(current.status === 'revoked' ? [revokeEvent, auditEvent()] : [auditEvent()]))
+      }
+      if (req.method === 'POST') {
+        current = revoked(current, 'Typo')
+        return json(current)
+      }
+      if (req.url.pathname === '/api/certificates') return json(certificatePage([certificateSummary()]))
+      return json(current)
+    })
+    const user = userEvent.setup()
+    renderRoute('/certificates/1')
+
+    const trail = await screen.findByRole('region', { name: 'Audit trail' })
+    expect(await within(trail).findAllByRole('listitem')).toHaveLength(1)
+    const auditCall = requests.find((r) => r.url.pathname === '/api/audit-events')!
+    expect(auditCall.url.searchParams.get('certificateId')).toBe('1')
+
+    await user.click(screen.getByRole('button', { name: 'Revoke' }))
+    await user.click(screen.getByRole('button', { name: 'Revoke certificate' }))
+    await screen.findByText('Certificate revoked.')
+
+    await waitFor(() => expect(within(trail).getAllByRole('listitem')).toHaveLength(2))
+    expect(within(trail).getAllByRole('listitem')[0]).toHaveTextContent('Revoked 1 June 2026, 10:00 AEST by admin — “Typo”')
   })
 })

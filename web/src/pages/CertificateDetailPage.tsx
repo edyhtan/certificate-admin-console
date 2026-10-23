@@ -4,6 +4,7 @@ import { idSchema, type CertificateDetail } from '@cert/shared'
 import { ApiError } from '../api/errors'
 import { StatusBadge } from '../components/StatusBadge'
 import { EmptyState, ErrorState, LoadingState } from '../components/states'
+import { AuditTrail } from '../features/audit/AuditTrail'
 import { RevokeDialog } from '../features/certificates/RevokeDialog'
 import { useCertificate, useRevokeCertificate } from '../features/certificates/api'
 import { formatInTimeZone } from '../lib/dates'
@@ -122,6 +123,8 @@ function CertificateView({ certificate }: { certificate: CertificateDetail }) {
           Revoke
         </button>
       )}
+
+      <AuditTrail certificateId={certificate.id} />
 
       {dialogOpen && (
         <RevokeDialog
