@@ -49,7 +49,7 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 | M1.T3  | BE    | Prisma schema and initial migration                | M1.T1, M1.T2          | done   | local |
 | M1.T4  | BE    | API test harness (Vitest + Supertest + test database) | M1.T3                | done   | local |
 | M1.T5  | BE    | `AppContext` port and single-tenant binding        | M1.T3                 | done   | local |
-| M1.T6  | BE    | Sydney seed, test baseline and `db:setup`          | M1.T3, M1.T4          | todo   |     |
+| M1.T6  | BE    | Sydney seed, test baseline and `db:setup`          | M1.T3, M1.T4          | done   | local |
 | M1.T7  | BE    | Courses and participants endpoints                 | M1.T4, M1.T5, M1.T6   | todo   |     |
 | M1.T8  | BE    | Certificate list (paging only) and detail          | M1.T4, M1.T5, M1.T6   | todo   |     |
 | M1.T9  | BE    | Audit writer and revoke endpoint                   | M1.T8                 | todo   |     |
@@ -129,7 +129,7 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 
 **M2.T2 — Time helpers and serial generator** (spec §4, §5.2)
 - `localYear(instant, tz)`, `localDate(instant, tz)` in the core.
-- `nextSerial(tx, prefix, year)` using `INSERT … ON DUPLICATE KEY UPDATE last_value = LAST_INSERT_ID(last_value + 1)`; format `PREFIX-YYYY-000123`.
+- `nextSerial(tx, prefix, year)` using `INSERT … ON DUPLICATE KEY UPDATE `last_value` = LAST_INSERT_ID(`last_value` + 1)` (backticks: `last_value` is reserved in MySQL 8, D55); format `PREFIX-YYYY-000123`.
 - Done when: unit tests cover Perth 31 Dec 23:30 local → year 2026, Sydney/Adelaide either side of a DST change; an integration test shows a rolled-back transaction gives its number back and two parallel transactions get different numbers.
 
 **M2.T3 — Bulk issue: preview and NDJSON issue endpoint** (spec §5.2)
