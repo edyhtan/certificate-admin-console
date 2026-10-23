@@ -190,9 +190,9 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 |-------|-------|------------------------------------------|------------|--------|-----|
 | M4.T1 | TEST  | End-to-end self-check on a fresh clone   | —          | todo   |     |
 | M4.T3 | BE    | API hardening and cleanup                | M4.T1      | todo   |     |
-| M4.T4 | DOCS  | README                                   | M4.T2, M4.T3 | in review |     |
+| M4.T4 | DOCS  | README                                   | M4.T2, M4.T3 | in review | #12 |
 | M4.T5 | INFRA | CI workflow (optional)                   | —          | todo   |     |
-| M4.T7 | INFRA | Docker image and full-stack compose      | —          | in review |     |
+| M4.T7 | INFRA | Docker image and full-stack compose      | —          | in review | #12 |
 
 **M4.T1 — End-to-end self-check on a fresh clone**
 - From a fresh clone and `docker compose down -v`: follow the README start steps; walk every flow in every tenant (list, search, sort, page, detail, revoke, bulk issue twice, export, audit log, tenant switch).
