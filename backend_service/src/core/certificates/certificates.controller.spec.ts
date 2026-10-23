@@ -2,7 +2,16 @@ import { CertificatesController } from './certificates.controller.js';
 import type { CertificatesService } from './certificates.service.js';
 
 describe('CertificatesController', () => {
-  const service = { list: vi.fn(), get: vi.fn() };
+  const service = { list: vi.fn(), get: vi.fn(), revoke: vi.fn() };
+
+  it('revokes by the validated id with the validated body', async () => {
+    service.revoke.mockResolvedValue({ id: 7, status: 'revoked' });
+    await expect(controller.revoke({ id: 7 }, { reason: 'typo' })).resolves.toEqual({
+      id: 7,
+      status: 'revoked',
+    });
+    expect(service.revoke).toHaveBeenCalledWith(7, { reason: 'typo' });
+  });
   const controller = new CertificatesController(service as unknown as CertificatesService);
 
   it('lists with the validated paging', async () => {

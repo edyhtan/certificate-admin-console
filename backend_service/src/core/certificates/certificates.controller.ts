@@ -1,12 +1,23 @@
 import {
   idParamSchema,
   paginationQuerySchema,
+  revokeCertificateRequestSchema,
   type CertificateDetail,
   type CertificateListResponse,
   type IdParam,
   type PaginationQuery,
+  type RevokeCertificate,
 } from '@cert/shared';
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ZodValidationPipe } from '../../common/validation/zod-validation.pipe.js';
 import { CertificatesService } from './certificates.service.js';
 
@@ -31,5 +42,16 @@ export class CertificatesController {
     @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
   ): Promise<CertificateDetail> {
     return this.certificates.get(params.id);
+  }
+
+  /** 200 both when it revokes and when the certificate was already revoked (spec §5.4). */
+  @Post(':id/revoke')
+  @HttpCode(HttpStatus.OK)
+  revoke(
+    @Param(new ZodValidationPipe(idParamSchema)) params: IdParam,
+    @Body(new ZodValidationPipe(revokeCertificateRequestSchema))
+    body: RevokeCertificate,
+  ): Promise<CertificateDetail> {
+    return this.certificates.revoke(params.id, body);
   }
 }

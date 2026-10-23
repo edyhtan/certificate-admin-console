@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module.js';
 import { CertificatesController } from './certificates.controller.js';
 import { CertificatesService } from './certificates.service.js';
 
 @Module({
+  imports: [AuditModule],
   controllers: [CertificatesController],
   providers: [CertificatesService],
 })
