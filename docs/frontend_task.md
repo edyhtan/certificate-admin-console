@@ -46,10 +46,10 @@ Frontend tasks for the Certificate Admin Console. Backend, infrastructure, test 
 
 | Task  | Area | Title                                               | Depends on    | Status | PR  |
 |-------|------|-----------------------------------------------------|---------------|--------|-----|
-| M2.T6 | FE   | List search, filter and sort UI                     | M2.T1         | in progress |     |
-| M2.T7 | FE   | Bulk issue page with live progress                  | M2.T3         | in progress |     |
-| M2.T8 | FE   | Export CSV button                                   | M2.T4, M2.T6  | in progress |     |
-| M2.T9 | FE   | Audit log: certificate trail and issuance log page  | M2.T5         | in progress |     |
+| M2.T6 | FE   | List search, filter and sort UI                     | M2.T1         | in review  | #9  |
+| M2.T7 | FE   | Bulk issue page with live progress                  | M2.T3         | in review  | #9  |
+| M2.T8 | FE   | Export CSV button                                   | M2.T4, M2.T6  | in review  | #9  |
+| M2.T9 | FE   | Audit log: certificate trail and issuance log page  | M2.T5         | in review  | #9  |
 
 **M2.T6 — List search, filter and sort UI**
 - Debounced search box (300 ms), status and course filters, clickable sortable headers with direction indicator; all state in URL search params; changing a filter resets to page 1.
