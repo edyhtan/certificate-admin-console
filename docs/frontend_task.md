@@ -46,7 +46,7 @@ Frontend tasks for the Certificate Admin Console. Backend, infrastructure, test 
 
 | Task  | Area | Title                                               | Depends on    | Status | PR  |
 |-------|------|-----------------------------------------------------|---------------|--------|-----|
-| M2.T6 | FE   | List search, filter and sort UI                     | M2.T1         | todo   |     |
+| M2.T6 | FE   | List search, filter and sort UI                     | M2.T1         | in progress |     |
 | M2.T7 | FE   | Bulk issue page with live progress                  | M2.T3         | todo   |     |
 | M2.T8 | FE   | Export CSV button                                   | M2.T4, M2.T6  | todo   |     |
 | M2.T9 | FE   | Audit log: certificate trail and issuance log page  | M2.T5         | todo   |     |

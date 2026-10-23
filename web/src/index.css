@@ -322,3 +322,74 @@ button.danger {
   margin: 0.75rem 0 0;
   color: var(--danger);
 }
+
+/* Page heading actions and toolbars */
+.page-heading {
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.page-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.button-link {
+  display: inline-block;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.toolbar select,
+.search-box {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.search-box {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+/* Sortable headers */
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+}
+
+.sort-indicator {
+  font-size: 0.75em;
+  opacity: 0.7;
+}
