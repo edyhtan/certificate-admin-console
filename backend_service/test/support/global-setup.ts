@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { PrismaClient } from '@prisma/client';
 import type { TestProject } from 'vitest/node';
 import { loadEnvFile } from '../../src/config/load-env-file.js';
+import { TEST_ADMIN } from './db.js';
 
 declare module 'vitest' {
   export interface ProvidedContext {
@@ -36,6 +37,11 @@ export default async function setup(project: TestProject) {
     env: { ...process.env, DATABASE_URL: databaseUrl },
     stdio: 'pipe',
   });
+
+  // The app loads its actor (the admin row) at start-up, so every test file's app finds it.
+  const db = new PrismaClient({ datasourceUrl: databaseUrl });
+  await db.admin.create({ data: TEST_ADMIN });
+  await db.$disconnect();
 
   project.provide('databaseUrl', databaseUrl);
 
