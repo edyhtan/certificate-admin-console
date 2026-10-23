@@ -11,9 +11,9 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 
 | Task  | Area  | Title                                   | Depends on   | Status      | PR  |
 |-------|-------|-----------------------------------------|--------------|-------------|-----|
-| M0.T1 | INFRA | Repo bootstrap and workspace scaffold   | —            | in review   | #1  |
-| M0.T2 | BE    | API contract for all endpoints          | M0.T1        | in review   | #1  |
-| M0.T3 | DOCS  | Milestone and task breakdown            | —            | in progress |     |
+| M0.T1 | INFRA | Repo bootstrap and workspace scaffold   | —            | done        | #1  |
+| M0.T2 | BE    | API contract for all endpoints          | M0.T1        | done        | #1  |
+| M0.T3 | DOCS  | Milestone and task breakdown            | —            | done        | #1  |
 
 **M0.T1 — Repo bootstrap and workspace scaffold**
 - `git init`, first commit straight to `main` (allowed for bootstrap, AGENTS.md §2): `AGENTS.md`, `CLAUDE.md`, PR template, `docs/`, `.gitignore`, `.editorconfig`.
