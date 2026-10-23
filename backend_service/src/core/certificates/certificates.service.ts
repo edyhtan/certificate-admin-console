@@ -1,13 +1,14 @@
 import type {
   CertificateDetail,
+  CertificateListQuery,
   CertificateListResponse,
-  PaginationQuery,
   RevokeCertificate,
 } from '@cert/shared';
 import { Injectable } from '@nestjs/common';
 import { NotFoundError } from '../../common/errors/app-error.js';
 import { AuditService } from '../audit/audit.service.js';
 import { AppContext } from '../context/app-context.js';
+import { buildCertificateQuery } from './certificate-query.js';
 import {
   DETAIL_SELECT,
   SUMMARY_SELECT,
@@ -23,21 +24,23 @@ export class CertificatesService {
   ) {}
 
   /**
-   * One page of certificates, newest first, id as tie-breaker so pages are stable (spec §5.3).
-   * M1: paging only; M2.T1 adds search, filters and sort.
+   * One page of certificates matching the search and filters, in the requested order
+   * (default newest first), with the id as tie-breaker so pages are stable (spec §5.3).
    */
-  async list(query: PaginationQuery): Promise<CertificateListResponse> {
+  async list(query: CertificateListQuery): Promise<CertificateListResponse> {
     const { page, pageSize } = query;
+    const { where, orderBy } = buildCertificateQuery(query);
     const db = this.ctx.db;
     // One transaction, so the rows and the total come from the same snapshot.
     const [rows, total] = await db.$transaction([
       db.certificate.findMany({
         select: SUMMARY_SELECT,
-        orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }],
+        where,
+        orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      db.certificate.count(),
+      db.certificate.count({ where }),
     ]);
     return {
       items: rows.map(toSummary),

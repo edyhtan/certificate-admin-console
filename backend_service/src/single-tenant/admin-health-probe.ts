@@ -6,7 +6,7 @@ import {
 
 /**
  * Up when the `admin` row is loaded, loading it first if needed. Writes need it as the actor,
- * so the health check answers 503 for as long as writes can't work (D60).
+ * so the health check answers 503 for as long as writes can't work (D61).
  */
 export class AdminHealthProbe extends HealthProbe {
   readonly name = 'admin';
