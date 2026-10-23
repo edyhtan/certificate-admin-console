@@ -2,7 +2,7 @@
 
 Backend, infrastructure, test and docs tasks for the Certificate Admin Console. Frontend tasks are in `docs/frontend_task.md`; the milestone overview and cross-file order are in `docs/milestones.md`. Rules for branches, order and PRs are in `AGENTS.md`; the design is in `docs/spec.md` (§ references point there).
 
-- "Depends on" can name tasks in either task file, within the same milestone. Every task also depends on the previous milestone being merged into `main`.
+- "Depends on" can name tasks in either task file, within the same milestone.
 - Update `Status` and `PR` here as part of your own task PR.
 
 ---
@@ -116,11 +116,11 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 
 | Task  | Area | Title                                               | Depends on    | Status | PR  |
 |-------|------|-----------------------------------------------------|---------------|--------|-----|
-| M2.T1 | BE   | List search, filters and sorting                    | —             | done   | local |
-| M2.T2 | BE   | Time helpers and serial generator                   | —             | done   | local |
-| M2.T3 | BE   | Bulk issue: preview and NDJSON issue endpoint       | M2.T2         | done   | local |
-| M2.T4 | BE   | CSV export                                          | M2.T1, M2.T2  | done   | local |
-| M2.T5 | BE   | Audit events endpoint                               | —             | done   | local |
+| M2.T1 | BE   | List search, filters and sorting                    | —             | in review | #8  |
+| M2.T2 | BE   | Time helpers and serial generator                   | —             | in review | #8  |
+| M2.T3 | BE   | Bulk issue: preview and NDJSON issue endpoint       | M2.T2         | in review | #8  |
+| M2.T4 | BE   | CSV export                                          | M2.T1, M2.T2  | in review | #8  |
+| M2.T5 | BE   | Audit events endpoint                               | —             | in review | #8  |
 
 **M2.T1 — List search, filters and sorting** (spec §5.3)
 - One `buildCertificateQuery(params)` returning Prisma `where` + `orderBy`; used by the list now and the export in M2.T4.
@@ -173,7 +173,7 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 **M3.T3 — Per-tenant database setup and seed**
 - `db:setup` loops the registry: `CREATE DATABASE IF NOT EXISTS` (utf8mb4 / 0900_ai_ci), `prisma migrate deploy` with that tenant's URL, seed with that tenant's profile if it has no `admin` row. (Seeding writes through an explicit client, so it needs no `runInTenant`.)
 - `cert_syd` from M1 becomes the `SYD` tenant database as it is; the `SYDNEY` seed profile stays unchanged.
-- Add `PERTH` (empty: admin and 3 courses only) and `ADELAIDE` (large: 250 participants, 150 certificates, DST edge cases) seed profiles (D61).
+- Add `PERTH` (empty: admin and 3 courses only) and `ADELAIDE` (large: 250 participants, 150 certificates, DST edge cases) seed profiles (D63).
 - Done when: `npm run dev` from `docker compose down -v` creates three seeded databases; re-running changes nothing.
 
 **M3.T4 — Tenant isolation tests**

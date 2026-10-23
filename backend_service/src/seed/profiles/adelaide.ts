@@ -4,7 +4,7 @@ import type { SeedProfile } from '../seed-profile.js';
  * Adelaide: Australia/Adelaide is +10:30 (ACDT) in summer and +9:30 (ACST) in winter: a
  * half-hour offset with daylight saving.
  *
- * The large tenant (D61): 250 participants and about 150 certificates, so the list has several
+ * The large tenant (D63): 250 participants and about 150 certificates, so the list has several
  * pages and search, sort and export have real volume. The rows are generated, but by fixed rules
  * with no randomness, so every run produces exactly the same data.
  *

@@ -45,7 +45,7 @@ Stop: `Ctrl+C` in the terminal that runs it. `npm run db:down` stops MySQL (the 
 ## Data
 
 - Every request except `GET /api/health` and `GET /api/tenants` needs `tenant_id: SYD`, `PER` or `ADL` (exact, upper case); anything else is `400 unknown_tenant`. Each code has its own database (`cert_syd`, `cert_per`, `cert_adl`).
-- `db:setup` creates, migrates and seeds each tenant database once (D61). Running it again changes nothing.
+- `db:setup` creates, migrates and seeds each tenant database once (D63). Running it again changes nothing.
   - `SYD` Sydney (`cert_syd`): 3 courses, 15 participants, 6 certificates (one revoked).
   - `PER` Perth (`cert_per`): 3 courses and nothing else, for empty states.
   - `ADL` Adelaide (`cert_adl`): 3 courses, 250 participants, 150 certificates (one revoked), about 8 list pages.

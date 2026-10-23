@@ -53,10 +53,13 @@ Every error has the same body:
 
 ### `GET /api/health`
 
-No tenant header (D50). Each check is `up` or `down` with its duration; reasons go to the server log only.
+No tenant header (D50). Each check is `up` or `down` with its duration; reasons go to the server log only. Every tenant has two checks: its database answers, and its `admin` row (the actor writes need) loads (D61, D60).
 
 ```json
-{ "status": "ok", "checks": { "database": { "status": "up", "durationMs": 1 } } }
+{ "status": "ok", "checks": {
+  "database:SYD": { "status": "up", "durationMs": 1 }, "admin:SYD": { "status": "up", "durationMs": 1 },
+  "database:PER": { "status": "up", "durationMs": 1 }, "admin:PER": { "status": "up", "durationMs": 1 },
+  "database:ADL": { "status": "up", "durationMs": 1 }, "admin:ADL": { "status": "up", "durationMs": 1 } } }
 ```
 
 `503` with `"status": "error"` when any check is down. Sent with `Cache-Control: no-store`.

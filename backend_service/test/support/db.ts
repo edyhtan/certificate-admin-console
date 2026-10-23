@@ -81,7 +81,7 @@ export async function resetDatabase(db: PrismaClient = testDb()): Promise<void> 
 }
 
 /**
- * Empties a tenant's test database and loads that tenant's seed (D61): Sydney's small set,
+ * Empties a tenant's test database and loads that tenant's seed (D63): Sydney's small set,
  * Perth's empty one (admin and courses), or Adelaide's large one. Ids match the tenant's manifest.
  */
 export async function resetToSeed(code: TenantCode): Promise<SeedResult> {

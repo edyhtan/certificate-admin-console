@@ -5,7 +5,7 @@ import { SEED_PROFILES } from './index.js';
 const localYear = (iso: string, timeZone: string) =>
   Number(new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric' }).format(new Date(iso)));
 
-// Rules every tenant's seed must follow, whatever its size (D55, D61).
+// Rules every tenant's seed must follow, whatever its size (D55, D63).
 describe.each(TENANT_CODES)('%s seed profile', (code) => {
   const profile = SEED_PROFILES[code];
 
@@ -77,7 +77,7 @@ describe.each(TENANT_CODES)('%s seed profile', (code) => {
   });
 });
 
-describe('seed sizes across tenants (D61)', () => {
+describe('seed sizes across tenants (D63)', () => {
   it('gives Sydney a small set, Perth none, and Adelaide the most', () => {
     expect(SEED_PROFILES.SYD.participants).toHaveLength(15);
     expect(SEED_PROFILES.PER.participants).toHaveLength(0);
