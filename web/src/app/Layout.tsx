@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router'
 import { TenantProvider } from '../features/tenants/TenantProvider'
 import { TenantSwitcher } from '../features/tenants/TenantSwitcher'
+import { TenantZone } from '../features/tenants/TenantZone'
 import { useTenant } from '../features/tenants/context'
 
 const navItems = [
@@ -26,6 +27,7 @@ function Shell() {
         </nav>
         <div className="app-tenant">
           <TenantSwitcher />
+          <TenantZone />
         </div>
         <span className="app-user">admin</span>
       </header>

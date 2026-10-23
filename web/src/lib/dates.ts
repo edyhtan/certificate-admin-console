@@ -60,3 +60,20 @@ export function formatDateInTimeZone(
 ): string {
   return formatInTimeZone(instant, timeZone, 'date')
 }
+
+function zonePart(timeZone: string, at: Date, timeZoneName: 'short' | 'shortOffset'): string {
+  const parts = new Intl.DateTimeFormat(LOCALE, { timeZone, timeZoneName }).formatToParts(at)
+  return parts.find((p) => p.type === 'timeZoneName')?.value ?? ''
+}
+
+/**
+ * The zone's name and UTC offset at a moment, e.g. `AWST UTC+8`, `AEDT UTC+11`,
+ * `ACST UTC+9:30`. Zones without a short name show the offset only (`UTC+5:30`).
+ * The offset is for `at` (default now), so it follows daylight saving.
+ */
+export function describeTimeZone(timeZone: string, at: Date = new Date()): string {
+  const offset = zonePart(timeZone, at, 'shortOffset').replace(/^GMT/, 'UTC') || 'UTC'
+  const name = zonePart(timeZone, at, 'short')
+  if (!name || name.startsWith('GMT') || name.startsWith('UTC')) return offset
+  return `${name} ${offset}`
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDateInTimeZone, formatInTimeZone, NO_DATE } from './dates'
+import { describeTimeZone, formatDateInTimeZone, formatInTimeZone, NO_DATE } from './dates'
 
 describe('formatInTimeZone', () => {
   it('shows a Perth New Year’s Eve issue on 31 Dec, not the UTC date', () => {
@@ -57,3 +57,27 @@ describe('formatInTimeZone', () => {
     expect(() => formatInTimeZone('2026-01-01T00:00:00Z', 'Mars/Olympus_Mons')).toThrow(RangeError)
   })
 })
+
+describe('describeTimeZone', () => {
+  const summer = new Date('2026-01-15T00:00:00Z')
+  const winter = new Date('2026-07-15T00:00:00Z')
+
+  it.each([
+    ['Australia/Perth', summer, 'AWST UTC+8'],
+    ['Australia/Perth', winter, 'AWST UTC+8'],
+    ['Australia/Sydney', summer, 'AEDT UTC+11'],
+    ['Australia/Sydney', winter, 'AEST UTC+10'],
+    ['Australia/Adelaide', summer, 'ACDT UTC+10:30'],
+    ['Australia/Adelaide', winter, 'ACST UTC+9:30'],
+    ['UTC', summer, 'UTC'],
+    ['Asia/Kolkata', summer, 'UTC+5:30'],
+  ])('%s at %s → %s', (zone, at, expected) => {
+    expect(describeTimeZone(zone, at)).toBe(expected)
+  })
+
+  it('follows the switch to daylight time in Sydney (4 Oct 2026, 16:00 UTC)', () => {
+    expect(describeTimeZone('Australia/Sydney', new Date('2026-10-03T15:59:00Z'))).toBe('AEST UTC+10')
+    expect(describeTimeZone('Australia/Sydney', new Date('2026-10-03T16:00:00Z'))).toBe('AEDT UTC+11')
+  })
+})
+
