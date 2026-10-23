@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "npm run env:init && npm run db:up && npm run db:setup && npm run dev:apps",
     "dev:apps": "concurrently --kill-others-on-fail --names api,web --prefix-colors blue,magenta \"npm run start:dev -w backend_service\" \"npm run dev -w web\"",
+    "dev:api": "npm run env:init && npm run db:up && npm run db:setup && npm run start:dev -w backend_service",
     "env:init": "node -e \"const f=require('fs');if(!f.existsSync('backend_service/.env')){f.copyFileSync('backend_service/.env.example','backend_service/.env');console.log('created backend_service/.env from .env.example')}\"",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
