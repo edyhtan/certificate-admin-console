@@ -163,10 +163,9 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 - Done when: unit tests cover registry lookup; the app starts with three clients.
 
 **M3.T2 — Tenant middleware and `GET /api/tenants`**
-- Tenant scope store: one `AsyncLocalStorage<TenantScope>` (frozen `{ code, db, timeZone, actor }`).
-- `TenantAppContext`: binding for `AppContext` whose getters read the current scope; no scope → throw. Rebind `AppContext` to it and remove the single-tenant binding.
+- `AppContext` as a `nestjs-cls` proxy provider (strict) resolved per request from the tenant's scope; no tenant context → throw. Remove the single-tenant binding (D64).
 - Middleware: `tenant_id` header → registry → that tenant's client, timezone, prefix and `admin` actor → `store.run(scope, next)`, so the whole request (including streamed responses) runs in that scope. Missing/unknown → `400 unknown_tenant`.
-- `runInTenant(code, fn)` for work outside a request (setup, seed, scripts, tests).
+- `TenantContext.run(code, fn)` for work outside a request (scripts, tests).
 - `GET /api/tenants` returns code, name, timezone only.
 - Done when: all existing e2e tests pass with a `tenant_id` header and **no changes to core modules**.
 

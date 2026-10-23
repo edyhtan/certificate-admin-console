@@ -122,7 +122,7 @@ Tests: an issue at 2026-12-31 23:30 Perth time (15:30 UTC) shows 31 Dec 2026 in 
 ### 5.1 Tenant isolation
 Isolation is physical: each tenant's data is in its own database (§3.1), so a request can only ever reach one tenant's rows.
 
-**Multitenancy stays out of the core.** The business modules (certificates, issuance, audit, export, courses, participants) never see a tenant. They are written as if there were one organisation with one database, and they never receive a context argument either. The context is **ambient**: it travels with the request's async call chain (Node `AsyncLocalStorage`), and the core reads it through one injected port that the core owns:
+**Multitenancy stays out of the core.** The business modules (certificates, issuance, audit, export, courses, participants) never see a tenant. They are written as if there were one organisation with one database, and they never receive a context argument either. The context is **ambient**: it travels with the request's async call chain (a `nestjs-cls` context, D64), and the core reads it through one injected port that the core owns:
 
 ```ts
 // backend_service/src/core/context/app-context.ts: owned by the core, no notion of "tenant"
@@ -145,30 +145,26 @@ export class CertificatesService {
 }
 ```
 
-A thin **tenancy module** (NestJS) sits around the core and is the only code that knows tenants exist:
+A thin **tenancy module** (NestJS) sits around the core and is the only code that knows tenants exist. It has three layers (D64):
 
-| Piece | Job |
-|-------|-----|
-| Registry | tenant code → name, timezone, database (§3.1) |
-| Prisma client manager | one `PrismaClient` per tenant, each pointed at that tenant's database (`datasourceUrl`) with a small connection pool; created on module init, disconnected on shutdown |
-| Tenant scope store | one `AsyncLocalStorage<TenantScope>`; a `TenantScope` is a frozen `{ code, db, timeZone, actor }` |
-| Tenant middleware | resolves the tenant for each request and runs the rest of the request inside its scope (below) |
-| `TenantAppContext` | the tenancy module's binding for `AppContext`: each getter reads the current scope. No scope → throws (`500`); it never falls back to a tenant |
-| `runInTenant(code, fn)` | runs work that doesn't come from a request (setup, seed, scripts, tests) inside a tenant's scope |
+| Layer | File | Job |
+|-------|------|-----|
+| 1. Mounting | `tenant.middleware.ts` | On every route except `GET /api/tenants` and `GET /api/health` (D50): read `tenant_id`, then run the rest of the request with `context.run(code, next)` |
+| 2. Tenant → database | `tenants.ts`, `tenant-databases.ts` | The registry (§3.1), one `PrismaClient` per tenant (small pool; connected on init, disconnected on shutdown), and `open(code)` → `{ code, db, timeZone, actor }` |
+| 3. Singleton injection | `tenant-context.ts` | `AppContext` is a `nestjs-cls` **proxy provider**: core services inject it once as a singleton, and every property access is forwarded to the context resolved for the current CLS context. `TenantContext.run(code, fn)` opens a CLS context, stores the code, resolves the proxy (its factory calls `open(code)`) and runs `fn` |
 
-Tenant middleware, on every route except `GET /api/tenants` and `GET /api/health` (D50):
+The request flow:
 1. Read the **`tenant_id`** header (a tenant code, e.g. `SYD`). Missing, or not in the registry → `400` `{ error: "unknown_tenant" }`.
-2. Take that tenant's Prisma client and timezone.
-3. Load the tenant's `admin` row as the actor. Every request acts as `admin` (§8: no auth).
-4. Run the rest of the request (guards, pipes, controller, core services, exception filter, streamed response) inside `store.run(scope, next)`.
+2. `context.run(code, next)`: resolving the proxy takes that tenant's Prisma client and timezone, and loads its `admin` row as the actor. Every request acts as `admin` (§8: no auth). A tenant that can't be opened → `500`.
+3. The rest of the request (guards, pipes, controller, core services, exception filter, streamed response) runs inside that CLS context.
 
 Rules:
 - API paths carry no tenant: `/api/certificates`, `/api/issuances`, …
-- Core services are ordinary singletons that inject `AppContext` and read it **when called**. They take no context argument, read no headers, and must not import the tenancy module or `node:async_hooks`. A lint rule (`no-restricted-imports`) enforces the imports.
+- Core services are ordinary singletons that inject `AppContext` and read it **when called**. They take no context argument, read no headers, and must not import the tenancy module, `nestjs-cls` or `node:async_hooks`. A lint rule (`no-restricted-imports`) enforces the imports.
 - Never copy an `AppContext` value into a field, a constructor or a module-level variable. Singletons outlive requests, so a cached value would carry one tenant's client or timezone into the next request.
 - Transactions: inside `this.ctx.db.$transaction(async tx => …)`, work through the `tx` argument and pass it on (`AuditService.record(tx, …)`, `nextSerial(tx, …)`). `ctx.db` is the tenant's client, not the open transaction.
-- The scope follows every `await`, promise, timer and stream started inside the request. The NDJSON issue run (§5.2) and the CSV export (§5.5) keep their tenant until they finish, even if the client disconnects. Work started anywhere else must go through `runInTenant`.
-- Fail closed: a core call with no scope is a bug and throws. There is no default tenant.
+- The scope follows every `await`, promise, timer and stream started inside the request. The NDJSON issue run (§5.2) and the CSV export (§5.5) keep their tenant until they finish, even if the client disconnects. Work started anywhere else (scripts, tests) must go through `TenantContext.run(code, fn)`.
+- Fail closed: the proxy is `strict`, so a core call with no tenant context throws. There is no default tenant.
 - Core tests bind `AppContext` to a fixed object over one plain database; they need no async storage.
 - A record id from another tenant returns `404`: it doesn't exist in this database.
 - `GET /api/tenants` (no header needed) returns each tenant's code, name and timezone, never the database name.
@@ -301,7 +297,7 @@ Validation (zod schemas in `shared`, checked on both sides; a small `ZodValidati
 **Setup script** (`npm run db:setup`, also run by `dev`): for each registry tenant, `CREATE DATABASE IF NOT EXISTS`, then `prisma migrate deploy` with that tenant's URL, then seed if its `admin` table is empty. Safe to run any number of times.
 
 Backend components:
-- *Tenancy module:* registry, Prisma client manager, tenant scope store (`AsyncLocalStorage`), tenant middleware, `TenantAppContext` binding, `runInTenant`, setup script (create, migrate, seed every tenant database).
+- *Tenancy module:* three layers: mounting (tenant middleware), tenant → database (registry, one client per tenant), singleton injection (`AppContext` as a `nestjs-cls` proxy provider); plus `GET /api/tenants` and the setup script (create, migrate, seed every tenant database).
 - *Core modules (tenant-unaware):* `AppContext` port, error format and validation pipe, time helpers (take a `timeZone`), serial generator, certificates (list, detail, revoke), issuance (per-learner transaction, NDJSON stream), audit, CSV export, courses, participants.
 
 Frontend components: app shell, tenant from subdomain and toolbar tenant selector, tenant picker, API client (adds the tenant header; reads NDJSON and CSV responses), tenant date formatting, certificate list, certificate detail and revoke dialog, bulk issue page, shared table/pagination/state components.
@@ -371,7 +367,7 @@ Frontend components: app shell, tenant from subdomain and toolbar tenant selecto
 | D43 | M1–M2 run single-tenant: `AppContext` is bound to a fixed provider (one database, timezone and prefix from env; Sydney per D48). M3 rebinds it to the tenancy module's `TenantAppContext` without changing core modules (wording updated for D46) | User milestone order puts multi-tenancy in M3; D25 makes the swap possible | — |
 | D44 | Pin Prisma 6.x (per-client `datasourceUrl`) | Prisma 7 needs a driver adapter per client; 6 keeps the per-tenant clients simple | — |
 | D45 | Tasks split into `docs/backend_task.md` (BE, INFRA, TEST, DOCS) and `docs/frontend_task.md` (FE); `docs/milestones.md` is the overview. Task IDs are unique across both | User request | Single ledger in `docs/milestones.md` |
-| D46 | Tenant context is **ambient**. The tenant middleware runs each request inside a Node `AsyncLocalStorage` scope. Core services inject a core-owned `AppContext` port whose getters read that scope when called. No context argument and no `@Ctx()` decorator. No scope → throw (fail closed). Built on plain `node:async_hooks`, not `nestjs-cls` | User: separate tenant logic completely from business code, so method signatures carry business inputs only. Plain `AsyncLocalStorage` is a few dozen lines with one store. Nest request-scoped providers were rejected: they rebuild every dependent service on each request and spread request scope up the dependency graph | D25 mechanism (explicit `RequestContext` argument) |
+| D46 | (Mechanism superseded by D64: `nestjs-cls` proxy provider instead of a hand-rolled `AsyncLocalStorage`; ambient context, core-owned port and fail-closed still hold.) Tenant context is **ambient**. The tenant middleware runs each request inside a Node `AsyncLocalStorage` scope. Core services inject a core-owned `AppContext` port whose getters read that scope when called. No context argument and no `@Ctx()` decorator. No scope → throw (fail closed). Built on plain `node:async_hooks`, not `nestjs-cls` | User: separate tenant logic completely from business code, so method signatures carry business inputs only. Plain `AsyncLocalStorage` is a few dozen lines with one store. Nest request-scoped providers were rejected: they rebuild every dependent service on each request and spread request scope up the dependency graph | D25 mechanism (explicit `RequestContext` argument) |
 | D47 | Projects live at the repo root as npm workspaces: `backend_service` (NestJS 12 CLI scaffold) and `web` (Vite `react-ts` scaffold); the contract goes in a `shared` workspace in M0.T2. Keep the scaffolds' tooling: Vitest for API tests, oxlint for lint (it supports `no-restricted-imports`) | User request for these project names; Nest 12 now ships Vitest + oxlint | `apps/api`, `apps/web`, `packages/shared`; Jest; ESLint |
 | D48 | M1–M2's single tenant is **Sydney**: database `cert_syd`, `Australia/Sydney`, prefix `SYD`. Its deterministic seed (`SYDNEY` profile, `SYDNEY_SEED` manifest, `resetToSydneySeed()`) is both the dev data and the default baseline for M1–M2 API tests. In M3, `cert_syd` becomes the `SYD` tenant as it is, and Perth and Adelaide profiles are added beside it | User: seed in M1, with Sydney as the primary test seed. Sydney has daylight saving, so DST and local-year edge cases are tested from M1, and M3 needs no data migration | Generic env-driven single-tenant seed |
 | D49 | Local MySQL from Docker Compose listens on host port **3307** (`MYSQL_PORT`), root/root dev credentials, UTC server time. The API's env file is `backend_service/.env` (read by both Nest and the Prisma CLI); `npm run dev` copies it from `.env.example` when missing | Found a local MySQL already on 3306; one env file next to the code that reads it; one-command start still needs no manual step | — |
@@ -389,3 +385,4 @@ Frontend components: app shell, tenant from subdomain and toolbar tenant selecto
 | D61 | The single-tenant binding (M1–M2) no longer loads the `admin` row only at start-up. While it isn't loaded, each write (`POST`/`PUT`/`PATCH`/`DELETE`, via `LoadActorInterceptor`) and each health check tries again, with concurrent tries sharing one query, so an API started before MySQL was up or seeded recovers without a restart. `GET /api/health` gains an `admin` check, up only when the row is loaded, so health answers `503` for as long as writes can't work. `actor` still throws while there is no row (D53). From M3 the tenant middleware loads the actor on every request (§5.1 step 3), so this applies to the single-tenant binding only | Review of PR #4: an API started before the database kept failing every write with `500` until it was restarted, while health answered `200` | — (extends D50) |
 | D62 | Bulk issue: the course check and candidate load run before the first byte, so errors there use the normal error shape; then `200 application/x-ndjson; charset=utf-8`. Candidates are the course's completed enrollments in id order. Inside each learner's transaction the existing certificate is re-read (skip `already_issued` / `revoked`), then serial, certificate and `certificate.issued` event. A `P2002` on the enrollment key is a skip; a deadlock (`P2034`) is retried up to 3 times; anything else is `failed` with a safe message (`Database error (P2xxx)` or `Unexpected error`) and the details go to the log. If the client disconnects, writes stop and the run finishes | Spec §5.2 "failed with the message" without leaking SQL or internals to the browser; repeatable under parallel runs (tested) | — |
 | D63 | Seed sizes differ per tenant: Sydney small (15 participants, 6 certificates), Perth empty (admin and 3 courses only), Adelaide large (250 participants, 150 certificates). Adelaide's rows are generated by fixed rules (25 × 10 name lists, enrollment and certificate rules, issue times every 34 h), with serials numbered in issue order; a unit test proves a fresh load is identical. `db:setup` creates (utf8mb4 / 0900_ai_ci), migrates and seeds every registry database; the API config drops `DATABASE_URL`, `APP_TIMEZONE` and `APP_SERIAL_PREFIX` (per-tenant values come from the registry) | User: a larger participant list for Adelaide and an empty one for Perth (chose ~250 with certificates, and admin + courses for Perth) | D35 participant counts |
+| D64 | The tenancy module has three layers: mounting (`TenantMiddleware`), tenant → database (`tenants.ts` registry + `TenantDatabases` with `open(code)`), and singleton injection. `AppContext` is a **`nestjs-cls` proxy provider** (`strict`): core services inject it as an ordinary singleton, and each access goes through the proxy to the context resolved for the current CLS context, built from `open(code)` as a core `FixedAppContext`. `TenantContext.run(code, fn)` opens a CLS context, sets the code, resolves the proxy and runs `fn`; the middleware and scripts or tests use it. Core code may not import `nestjs-cls`. Health probes are inline objects | User: the tenancy module was too complex (9 files: scope store, scope builder, binding class, admin-probe class…); asked for lean layering and for CLS with proxy injection. Now 6 files, and the per-request context is a library feature rather than our own code | D46 mechanism (hand-rolled `AsyncLocalStorage`); D60 file layout |

@@ -1,21 +1,15 @@
 import { Logger } from '@nestjs/common';
-import type { PrismaClient } from '@prisma/client';
 import type { NextFunction, Request, Response } from 'express';
+import type { TenantContext } from './tenant-context.js';
+import { TenantNotSetUpError } from './tenant-databases.js';
 import { TenantMiddleware } from './tenant.middleware.js';
-import { TenantScopeStore } from './tenant-scope.js';
-import { TenantNotSetUpError, type TenantScopes } from './tenant-scopes.js';
 
-function setup(scopeFor = vi.fn(async (code: string) => ({
-  code,
-  db: {} as PrismaClient,
-  timeZone: 'Australia/Perth',
-  actor: { id: 1, name: 'Administrator' },
-}))) {
-  const store = new TenantScopeStore();
-  const middleware = new TenantMiddleware({ scopeFor } as unknown as TenantScopes, store);
-  const res = { status: vi.fn(), json: vi.fn() };
+/** A stand-in for TenantContext.run: records the tenant, then runs fn. */
+function setup(run = vi.fn(async (_code: string, fn: () => unknown) => fn())) {
+  const middleware = new TenantMiddleware({ run } as unknown as TenantContext);
+  const res = { status: vi.fn(), json: vi.fn(), headersSent: false };
   res.status.mockReturnValue(res);
-  return { middleware, store, res, scopeFor };
+  return { middleware, res, run };
 }
 
 const req = (headers: Record<string, string | string[]>) =>
@@ -30,16 +24,12 @@ describe('TenantMiddleware', () => {
     vi.restoreAllMocks();
   });
 
-  it('runs the rest of the request inside the tenant scope', async () => {
-    const { middleware, store, res, scopeFor } = setup();
-    let seen: string | undefined;
-    const next = vi.fn(() => {
-      seen = store.current()?.code;
-    });
+  it('runs the rest of the request as the header’s tenant', async () => {
+    const { middleware, res, run } = setup();
+    const next = vi.fn();
     await middleware.use(req({ tenant_id: 'PER' }), res as unknown as Response, next as NextFunction);
-    expect(scopeFor).toHaveBeenCalledWith('PER');
+    expect(run).toHaveBeenCalledWith('PER', expect.any(Function));
     expect(next).toHaveBeenCalledOnce();
-    expect(seen).toBe('PER');
     expect(res.status).not.toHaveBeenCalled();
   });
 
@@ -52,18 +42,15 @@ describe('TenantMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it.each([['XYZ'], ['syd'], [['SYD', 'PER']]])(
-    'answers 400 unknown_tenant for %j (exact match only)',
-    async (value) => {
-      const { middleware, res, scopeFor } = setup();
-      const next = vi.fn();
-      await middleware.use(req({ tenant_id: value }), res as unknown as Response, next);
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json.mock.calls[0][0]).toMatchObject({ error: 'unknown_tenant' });
-      expect(next).not.toHaveBeenCalled();
-      expect(scopeFor).not.toHaveBeenCalled();
-    },
-  );
+  it.each([['XYZ'], ['syd'], [['SYD', 'PER']]])('answers 400 unknown_tenant for %j (exact match only)', async (value) => {
+    const { middleware, res, run } = setup();
+    const next = vi.fn();
+    await middleware.use(req({ tenant_id: value }), res as unknown as Response, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json.mock.calls[0][0]).toMatchObject({ error: 'unknown_tenant' });
+    expect(next).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+  });
 
   it('answers 500 without details when the tenant can’t be opened', async () => {
     const { middleware, res } = setup(vi.fn().mockRejectedValue(new TenantNotSetUpError('ADL')));

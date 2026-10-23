@@ -2,7 +2,7 @@ import { apiErrorBodySchema, TENANT_HEADER, tenantListResponseSchema } from '@ce
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { CoursesService } from '../src/core/courses/courses.service.js';
-import { TenantScopes } from '../src/tenancy/tenant-scopes.js';
+import { TenantContext } from '../src/tenancy/tenant-context.js';
 import { testDb } from './support/db.js';
 import { createTestApp } from './support/test-app.js';
 
@@ -45,14 +45,15 @@ describe('Tenancy (e2e)', () => {
     expect(res.body.error).toBe('unknown_tenant');
   });
 
-  it('runInTenant gives a core service that tenant outside a request', async () => {
+  it('context.run gives a core service a tenant outside a request, and none without it', async () => {
     await testDb('PER').course.create({ data: { code: 'RUN-PER', title: 'Run in Perth' } });
-    const scopes = app.get(TenantScopes);
+    const context = app.get(TenantContext);
     const courses = app.get(CoursesService);
-    const per = await scopes.runInTenant('PER', () => courses.list());
-    const syd = await scopes.runInTenant('SYD', () => courses.list());
+    const per = await context.run('PER', () => courses.list());
+    const syd = await context.run('SYD', () => courses.list());
     expect(per.items.map((c) => c.code)).toContain('RUN-PER');
     expect(syd.items.map((c) => c.code)).not.toContain('RUN-PER');
+    await expect(courses.list()).rejects.toThrow();
     await testDb('PER').course.deleteMany({ where: { code: 'RUN-PER' } });
   });
 });

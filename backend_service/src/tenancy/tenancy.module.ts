@@ -5,45 +5,40 @@ import {
   type MiddlewareConsumer,
   type NestModule,
 } from '@nestjs/common';
-import { AppContext } from '../core/context/app-context.js';
-import { HEALTH_PROBES } from '../health/health-probe.js';
+import { ClsModule } from 'nestjs-cls';
+import { HEALTH_PROBES, type HealthProbe } from '../health/health-probe.js';
 import { PrismaHealthProbe } from '../health/prisma-health-probe.js';
-import { TenantAdminProbe } from './tenant-admin-probe.js';
-import { TenantAppContext } from './tenant-app-context.js';
-import { TenantClients } from './tenant-clients.js';
+import { TenantAppContextModule, TenantContext } from './tenant-context.js';
+import { TenantDatabases } from './tenant-databases.js';
 import { TenantMiddleware } from './tenant.middleware.js';
-import { TenantScopeStore } from './tenant-scope.js';
-import { TenantScopes } from './tenant-scopes.js';
 import { TenantsController } from './tenants.controller.js';
 
 /**
- * The only code that knows tenants exist (spec §5.1, D46): registry, one client per tenant,
- * the ambient tenant scope, the middleware that sets it, and AppContext bound to it.
+ * The only code that knows tenants exist (spec §5.1), in three layers:
+ * 1. Mounting: `TenantMiddleware` on every route except `GET /api/tenants` and `GET /api/health`.
+ * 2. Tenant → database: `TenantDatabases` (registry in `tenants.ts`).
+ * 3. Singleton injection: `AppContext` as a nestjs-cls proxy provider (`tenant-context.ts`).
  */
 @Global()
 @Module({
+  imports: [ClsModule.forRoot({ global: true }), TenantAppContextModule],
   controllers: [TenantsController],
   providers: [
-    TenantClients,
-    TenantScopeStore,
-    TenantScopes,
-    TenantAppContext,
-    { provide: AppContext, useExisting: TenantAppContext },
+    TenantDatabases,
+    TenantContext,
     {
-      // Per tenant: its database answers (`database:SYD`, D50) and its admin actor loads
-      // (`admin:SYD`, D61), so health is 503 while any tenant can't take writes.
+      // Per tenant: its database answers (D50) and its admin actor loads (D61), so health is 503
+      // while any tenant can't take writes.
       provide: HEALTH_PROBES,
-      useFactory: (clients: TenantClients, scopes: TenantScopes) =>
-        clients
-          .entries()
-          .flatMap(([code, client]) => [
-            new PrismaHealthProbe(`database:${code}`, client),
-            new TenantAdminProbe(scopes, code),
-          ]),
-      inject: [TenantClients, TenantScopes],
+      useFactory: (databases: TenantDatabases): HealthProbe[] =>
+        databases.entries().flatMap(([code, client]) => [
+          new PrismaHealthProbe(`database:${code}`, client),
+          { name: `admin:${code}`, check: async () => void (await databases.open(code)) },
+        ]),
+      inject: [TenantDatabases],
     },
   ],
-  exports: [AppContext, HEALTH_PROBES, TenantClients, TenantScopes],
+  exports: [HEALTH_PROBES, TenantDatabases, TenantContext],
 })
 export class TenancyModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
