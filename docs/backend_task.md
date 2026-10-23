@@ -190,8 +190,9 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 |-------|-------|------------------------------------------|------------|--------|-----|
 | M4.T1 | TEST  | End-to-end self-check on a fresh clone   | —          | todo   |     |
 | M4.T3 | BE    | API hardening and cleanup                | M4.T1      | todo   |     |
-| M4.T4 | DOCS  | README                                   | M4.T2, M4.T3 | todo |     |
+| M4.T4 | DOCS  | README                                   | M4.T2, M4.T3 | in review | #12 |
 | M4.T5 | INFRA | CI workflow (optional)                   | —          | todo   |     |
+| M4.T7 | INFRA | Docker image and full-stack compose      | —          | in review | #12 |
 
 **M4.T1 — End-to-end self-check on a fresh clone**
 - From a fresh clone and `docker compose down -v`: follow the README start steps; walk every flow in every tenant (list, search, sort, page, detail, revoke, bulk issue twice, export, audit log, tenant switch).
@@ -206,3 +207,10 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 
 **M4.T5 — CI workflow (optional)**
 - GitHub Actions: install, lint, typecheck, API tests against a MySQL service container, web tests. Only if the repo has a GitHub remote.
+
+**M4.T7 — Docker image and full-stack compose** (D64)
+- One multi-stage `Dockerfile` with two targets: `api` (NestJS; runs `db:setup`, then the API) and `web` (the Vite build on nginx, forwarding `/api` to `api`).
+- `docker-compose.yml`: `api` and `web` under the `app` profile, so `docker compose --profile app up --build` starts everything and plain `docker compose up` (dev, tests) still starts MySQL only. Web on `WEB_PORT` (default 8080).
+- Seeding on start: `db:setup` creates, migrates and seeds each tenant database that is missing; seeded ones are left alone, so restarts keep data.
+- nginx: `underscores_in_headers on` for the `tenant_id` header; no proxy buffering, so the bulk issue NDJSON stream and CSV export pass through as they arrive; SPA fallback to `index.html`.
+- Done when: from an empty volume the stack comes up healthy, all three tenants are seeded, each tenant's data comes back through nginx with its `tenant_id`, a bulk issue streams progress and a repeat run skips everyone, CSV export downloads, client-side routes load, and a restart skips seeding and keeps data.
