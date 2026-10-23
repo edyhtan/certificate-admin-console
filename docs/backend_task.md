@@ -50,7 +50,7 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 | M1.T4  | BE    | API test harness (Vitest + Supertest + test database) | M1.T3                | done   | local |
 | M1.T5  | BE    | `AppContext` port and single-tenant binding        | M1.T3                 | done   | local |
 | M1.T6  | BE    | Sydney seed, test baseline and `db:setup`          | M1.T3, M1.T4          | done   | local |
-| M1.T7  | BE    | Courses and participants endpoints                 | M1.T4, M1.T5, M1.T6   | todo   |     |
+| M1.T7  | BE    | Courses and participants endpoints                 | M1.T4, M1.T5, M1.T6   | done   | local |
 | M1.T8  | BE    | Certificate list (paging only) and detail          | M1.T4, M1.T5, M1.T6   | todo   |     |
 | M1.T9  | BE    | Audit writer and revoke endpoint                   | M1.T8                 | todo   |     |
 
