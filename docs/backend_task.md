@@ -155,7 +155,7 @@ Backend, infrastructure, test and docs tasks for the Certificate Admin Console. 
 | M3.T1 | BE    | Tenant registry and per-tenant Prisma clients      | —             | done   | local |
 | M3.T2 | BE    | Tenant middleware and `GET /api/tenants`           | M3.T1         | done   | local |
 | M3.T3 | INFRA | Per-tenant database setup and seed                 | M3.T1         | done   | local |
-| M3.T4 | TEST  | Tenant isolation tests                             | M3.T2, M3.T3  | todo   |     |
+| M3.T4 | TEST  | Tenant isolation tests                             | M3.T2, M3.T3  | done   | local |
 
 **M3.T1 — Tenant registry and per-tenant Prisma clients** (spec §3.1, §5.1)
 - `backend_service/src/tenancy/tenants.ts`: `SYD` Sydney / `PER` Perth / `ADL` Adelaide with timezone and database name.
