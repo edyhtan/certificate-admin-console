@@ -20,9 +20,6 @@ export interface ApiFetchOptions<S extends z.ZodType> extends ApiRequestOptions 
   schema?: S
 }
 
-/** Base path of the API. The Vite dev server proxies it to the API (vite.config.ts). */
-export const API_BASE = '/api'
-
 /** `?a=1&b=x` from params, skipping empty values. Returns '' when nothing is left. */
 export function buildQueryString(query: QueryParams = {}): string {
   const params = new URLSearchParams()
@@ -35,6 +32,9 @@ export function buildQueryString(query: QueryParams = {}): string {
 }
 
 /**
+ * `path` is the full API path from the contract, e.g. `endpoints.listCertificates.path` or
+ * `buildPath(endpoints.getCertificate.path, { id })`. The Vite dev server proxies `/api`.
+ *
  * Sends a request with the tenant header and returns the raw response once it is known to be
  * 2xx. Use it directly for non-JSON responses (NDJSON stream, CSV file). Throws `ApiError`.
  */
@@ -52,7 +52,7 @@ export async function apiRequest(path: string, options: ApiRequestOptions = {}):
 
   let response: Response
   try {
-    response = await fetch(`${API_BASE}${path}${buildQueryString(options.query)}`, init)
+    response = await fetch(`${path}${buildQueryString(options.query)}`, init)
   } catch (cause) {
     // Let aborts through unchanged so TanStack Query can recognise a cancelled query.
     if (cause instanceof DOMException && cause.name === 'AbortError') throw cause
@@ -65,7 +65,7 @@ export async function apiRequest(path: string, options: ApiRequestOptions = {}):
 
 /**
  * Calls a JSON endpoint and returns its parsed body, e.g.
- * `apiFetch('/certificates/7', { schema: certificateResponseSchema })`.
+ * `apiFetch('/api/certificates/7', { schema: certificateDetailSchema })`.
  * Without a schema the body is returned as `unknown`. `204` returns `undefined`.
  */
 export async function apiFetch<S extends z.ZodType>(

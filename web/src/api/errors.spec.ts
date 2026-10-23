@@ -16,6 +16,12 @@ describe('errorFromResponse', () => {
     expect(error).toMatchObject({ status: 404, code: 'not_found', message: 'Not found' })
   })
 
+  it('does not trust an error code outside the contract', async () => {
+    const response = new Response(JSON.stringify({ error: 'teapot', message: 'I am a teapot' }), { status: 418 })
+    const error = await errorFromResponse(response)
+    expect(error).toMatchObject({ status: 418, code: 'internal_error', message: 'Request failed (418)' })
+  })
+
   it('falls back to internal_error for JSON that is not the API shape', async () => {
     const error = await errorFromResponse(new Response(JSON.stringify({ msg: 'x' }), { status: 500 }))
     expect(error).toMatchObject({ status: 500, code: 'internal_error', message: 'Request failed (500)' })
