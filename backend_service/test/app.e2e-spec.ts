@@ -1,8 +1,7 @@
 import { Body, Controller, Get, Post, type INestApplication } from '@nestjs/common';
-import request from 'supertest';
 import { z } from 'zod';
 import { ZodValidationPipe } from '../src/common/validation/zod-validation.pipe.js';
-import { createTestApp } from './support/test-app.js';
+import { api, createTestApp } from './support/test-app.js';
 
 const echoSchema = z.object({
   email: z.email('must be a valid email'),
@@ -36,21 +35,21 @@ describe('App (e2e)', () => {
 
   describe('GET /api/health', () => {
     it('answers 200 ok and is not cached', async () => {
-      const res = await request(app.getHttpServer()).get('/api/health');
+      const res = await api(app).get('/api/health');
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('ok');
       expect(res.headers['cache-control']).toBe('no-store');
     });
 
     it('is only served under the /api prefix', async () => {
-      const res = await request(app.getHttpServer()).get('/health');
+      const res = await api(app).get('/health');
       expect(res.status).toBe(404);
     });
   });
 
   describe('error shape', () => {
     it('unknown route → 404 not_found', async () => {
-      const res = await request(app.getHttpServer()).get('/api/nope');
+      const res = await api(app).get('/api/nope');
       expect(res.status).toBe(404);
       expect(res.body).toEqual({
         error: 'not_found',
@@ -59,7 +58,7 @@ describe('App (e2e)', () => {
     });
 
     it('bad body → 400 validation_failed with per-field messages', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await api(app)
         .post('/api/_test/echo')
         .send({ email: 'not-an-email', name: '  ' });
       expect(res.status).toBe(400);
@@ -71,7 +70,7 @@ describe('App (e2e)', () => {
     });
 
     it('good body → parsed value', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await api(app)
         .post('/api/_test/echo')
         .send({ email: 'ana@example.com', name: ' Ana ' });
       expect(res.status).toBe(201);
@@ -79,7 +78,7 @@ describe('App (e2e)', () => {
     });
 
     it('malformed JSON → 400 bad_request', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await api(app)
         .post('/api/_test/echo')
         .set('Content-Type', 'application/json')
         .send('{"email":');
@@ -91,7 +90,7 @@ describe('App (e2e)', () => {
     });
 
     it('body over the parser limit → 413 payload_too_large', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await api(app)
         .post('/api/_test/echo')
         .set('Content-Type', 'application/json')
         .send(JSON.stringify({ email: 'a@b.co', name: 'x'.repeat(200_000) }));
@@ -103,7 +102,7 @@ describe('App (e2e)', () => {
     });
 
     it('unexpected error → 500 internal_error without the details', async () => {
-      const res = await request(app.getHttpServer()).get('/api/_test/boom');
+      const res = await api(app).get('/api/_test/boom');
       expect(res.status).toBe(500);
       expect(res.body).toEqual({
         error: 'internal_error',

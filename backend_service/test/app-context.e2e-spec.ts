@@ -4,7 +4,7 @@ import { AppConfig } from '../src/config/app-config.js';
 import { AppContext } from '../src/core/context/app-context.js';
 import { testAppContext } from './support/app-context.js';
 import { TEST_ADMIN, testDatabaseName } from './support/db.js';
-import { createTestApp } from './support/test-app.js';
+import { api, createTestApp } from './support/test-app.js';
 
 /** Shaped like a core service: injects AppContext and takes no context argument. */
 @Injectable()
@@ -35,7 +35,7 @@ class SampleController {
 }
 
 
-describe('AppContext single-tenant binding (e2e)', () => {
+describe('AppContext tenant binding (e2e)', () => {
   describe('real binding', () => {
     let app: INestApplication;
 
@@ -51,7 +51,7 @@ describe('AppContext single-tenant binding (e2e)', () => {
     });
 
     it('gives a core service the Sydney database, timezone, prefix and admin actor', async () => {
-      const res = await request(app.getHttpServer()).get('/api/_test/context');
+      const res = await api(app).get('/api/_test/context');
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
         database: testDatabaseName(),
@@ -62,12 +62,27 @@ describe('AppContext single-tenant binding (e2e)', () => {
       });
     });
 
-    it('reports the database as up in the health check', async () => {
+    it.each([
+      ['PER', 'Australia/Perth'],
+      ['ADL', 'Australia/Adelaide'],
+    ] as const)('gives the same core service %s’s database, timezone and prefix', async (code, timeZone) => {
+      const res = await api(app, code).get('/api/_test/context');
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        database: testDatabaseName(code),
+        timeZone,
+        serialPrefix: code,
+        actor: { id: TEST_ADMIN.id, name: TEST_ADMIN.name },
+      });
+    });
+
+    it('reports every tenant database as up in the health check, without a tenant header', async () => {
       const res = await request(app.getHttpServer()).get('/api/health');
       expect(res.status).toBe(200);
+      const up = { status: 'up', durationMs: expect.any(Number) };
       expect(res.body).toEqual({
         status: 'ok',
-        checks: { database: { status: 'up', durationMs: expect.any(Number) } },
+        checks: { 'database:SYD': up, 'database:PER': up, 'database:ADL': up },
       });
     });
   });
@@ -90,7 +105,7 @@ describe('AppContext single-tenant binding (e2e)', () => {
     });
 
     it('replaces the single-tenant binding, e.g. with a fixed clock', async () => {
-      const res = await request(app.getHttpServer()).get('/api/_test/context');
+      const res = await api(app).get('/api/_test/context');
       expect(res.body).toMatchObject({
         database: testDatabaseName(),
         serialPrefix: 'SYD',
@@ -122,12 +137,13 @@ describe('AppContext single-tenant binding (e2e)', () => {
       await app.close();
     });
 
-    it('still starts, and the health check answers 503 with the database down', async () => {
-      const res = await request(app.getHttpServer()).get('/api/health');
+    it('still starts, and the health check answers 503 with every tenant database down', async () => {
+      const res = await api(app).get('/api/health');
       expect(res.status).toBe(503);
+      const down = { status: 'down', durationMs: expect.any(Number) };
       expect(res.body).toEqual({
         status: 'error',
-        checks: { database: { status: 'down', durationMs: expect.any(Number) } },
+        checks: { 'database:SYD': down, 'database:PER': down, 'database:ADL': down },
       });
       expect(JSON.stringify(res.body)).not.toContain('127.0.0.1');
     });

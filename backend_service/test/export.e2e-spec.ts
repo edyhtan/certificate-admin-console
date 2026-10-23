@@ -1,12 +1,11 @@
 import { CERTIFICATE_EXPORT_COLUMNS, TENANT_HEADER } from '@cert/shared';
 import type { INestApplication } from '@nestjs/common';
-import request from 'supertest';
 import { EXPORT_BATCH_SIZE } from '../src/core/certificates/certificate-export.service.js';
 import { localDate } from '../src/core/time/local-time.js';
 import { SYDNEY_SEED } from '../src/seed/manifest.js';
 import { resetToSydneySeed } from './support/db.js';
 import { createCertificate, createEnrollment, createParticipant } from './support/factories.js';
-import { createTestApp } from './support/test-app.js';
+import { api, createTestApp } from './support/test-app.js';
 
 /** A small RFC 4180 reader for checking the export: quoted fields, doubled quotes, CRLF. */
 function parseCsv(text: string): string[][] {
@@ -46,7 +45,7 @@ describe('CSV export (e2e)', () => {
   let smallBatches: INestApplication;
 
   const fetchCsv = (target: INestApplication, query: Record<string, string | number> = {}) =>
-    request(target.getHttpServer())
+    api(target)
       .get('/api/certificates/export.csv')
       .set(TENANT_HEADER, 'SYD')
       .query(query)
@@ -58,7 +57,7 @@ describe('CSV export (e2e)', () => {
         res.on('end', () => done(null, text));
       });
   const listTotal = async (query: Record<string, string | number>) =>
-    (await request(app.getHttpServer()).get('/api/certificates').query(query)).body.total as number;
+    (await api(app).get('/api/certificates').query(query)).body.total as number;
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -123,7 +122,7 @@ describe('CSV export (e2e)', () => {
   it('sorts like the list', async () => {
     const query = { sort: 'participant_name', order: 'desc' };
     const csvNames = parseCsv((await fetchCsv(app, query)).body.slice(1)).slice(1).map((r) => r[0]);
-    const list = await request(app.getHttpServer()).get('/api/certificates').query({ ...query, pageSize: 100 });
+    const list = await api(app).get('/api/certificates').query({ ...query, pageSize: 100 });
     expect(csvNames).toEqual(list.body.items.map((c: { participantName: string }) => c.participantName));
   });
 
@@ -157,7 +156,7 @@ describe('CSV export (e2e)', () => {
   });
 
   it('answers 400 JSON for an invalid sort, before any CSV', async () => {
-    const res = await request(app.getHttpServer()).get('/api/certificates/export.csv').query({ sort: 'id' });
+    const res = await api(app).get('/api/certificates/export.csv').query({ sort: 'id' });
     expect(res.status).toBe(400);
     expect(res.headers['content-type']).toMatch(/^application\/json/);
     expect(res.body).toMatchObject({ error: 'validation_failed', fields: { sort: expect.any(String) } });

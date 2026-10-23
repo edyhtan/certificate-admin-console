@@ -1,10 +1,9 @@
 import { certificateDetailSchema, TENANT_HEADER } from '@cert/shared';
 import type { INestApplication } from '@nestjs/common';
-import request from 'supertest';
 import { SYDNEY_SEED } from '../src/seed/manifest.js';
 import { testAppContext } from './support/app-context.js';
 import { resetToSydneySeed, TEST_ADMIN, testDb } from './support/db.js';
-import { createTestApp } from './support/test-app.js';
+import { api, createTestApp } from './support/test-app.js';
 
 const C = SYDNEY_SEED.certificates;
 
@@ -12,7 +11,7 @@ describe('Revoke (e2e)', () => {
   const db = testDb();
   let app: INestApplication;
   const revoke = (id: number | string, body?: unknown) => {
-    const req = request(app.getHttpServer())
+    const req = api(app)
       .post(`/api/certificates/${id}/revoke`)
       .set(TENANT_HEADER, 'SYD');
     return body === undefined ? req : req.send(body as object);
@@ -156,7 +155,7 @@ describe('Revoke (e2e)', () => {
     });
 
     it('stamps the certificate and the event with AppContext.now()', async () => {
-      const res = await request(fixedApp.getHttpServer())
+      const res = await api(fixedApp)
         .post(`/api/certificates/${C.newYear.id}/revoke`)
         .send({});
       expect(res.body.revokedAt).toBe('2026-10-22T03:15:00.000Z');

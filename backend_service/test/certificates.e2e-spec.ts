@@ -5,11 +5,10 @@ import {
   TENANT_HEADER,
 } from '@cert/shared';
 import type { INestApplication } from '@nestjs/common';
-import request from 'supertest';
 import { SYDNEY_SEED } from '../src/seed/manifest.js';
 import { resetToSydneySeed, TEST_ADMIN } from './support/db.js';
 import { createCertificate } from './support/factories.js';
-import { createTestApp } from './support/test-app.js';
+import { api as tenantApi, createTestApp } from './support/test-app.js';
 
 const C = SYDNEY_SEED.certificates;
 /** Seeded certificates, newest first. */
@@ -24,7 +23,7 @@ const NEWEST_FIRST = [
 
 describe('Certificates list and detail (e2e)', () => {
   let app: INestApplication;
-  const api = () => request(app.getHttpServer());
+  const api = () => tenantApi(app);
   const list = (query: Record<string, string | number> = {}) =>
     api().get('/api/certificates').set(TENANT_HEADER, 'SYD').query(query);
 
