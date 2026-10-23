@@ -55,15 +55,12 @@ main                                  always builds; only milestone merges land 
 
 ## 3. Order rules
 
-1. **Milestones are sequential.** Whenever you start a new milestone:
-   - **Make sure the previous milestone's PR is merged into `main`.** Check it, don't assume it: `gh pr list --base main --state merged --search "[M<n>]"` must show the `[M<n>]` milestone PR. If it's still open or in review, don't start the new milestone. Tell the user and wait.
-   - **Always create the new milestone branch from the latest `main`**, never from the previous milestone branch or a task branch:
-     ```bash
-     git fetch origin
-     git switch -c milestone/m<n+1>-<slug> origin/main
-     git push -u origin milestone/m<n+1>-<slug>
-     ```
-   - The first milestone (`M0`) has no previous milestone, so only the second rule applies.
+1. **Every new milestone branch starts from the latest `main`**, never from another milestone branch or a task branch:
+   ```bash
+   git fetch origin
+   git switch -c milestone/m<n>-<slug> origin/main
+   git push -u origin milestone/m<n>-<slug>
+   ```
 2. **Tasks merge in dependency order.** A task PR may merge only when every task in its `Depends on` column is `done`.
 3. **Independent tasks may run and merge in any order.** When two tasks are both ready, merge the lower task number first.
 4. **A milestone is done** when every task in it is `done`. Only then open the milestone PR into `main`.
